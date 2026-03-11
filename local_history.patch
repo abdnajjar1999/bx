@@ -1,0 +1,19 @@
+Index: lib/screens/ManageShipments/ManageShipmentsScreen.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/ManageShipmentsScreen.dart b/lib/screens/ManageShipments/ManageShipmentsScreen.dart
+--- a/lib/screens/ManageShipments/ManageShipmentsScreen.dart	
++++ b/lib/screens/ManageShipments/ManageShipmentsScreen.dart	(date 1733415004936)
+@@ -215,8 +215,9 @@
+ 
+     final provider = context.read<AppProvider>();
+     provider.addListener(() {
++      print('changed');
+       _applyFiltersLocally();
+-    //  print('Count changed to: ${provider.count}');
++
+     });
+ 
+     //_verticalScrollController.addListener(_onScroll);

@@ -1,0 +1,2198 @@
+Index: lib/auth/login.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/auth/login.dart b/lib/auth/login.dart
+--- a/lib/auth/login.dart	
++++ b/lib/auth/login.dart	(date 1734379425229)
+@@ -10,18 +10,11 @@
+ 
+ class _LoginScreenState extends State<LoginScreen> {
+   final FirebaseAuth _auth = FirebaseAuth.instance;
+-  final TextEditingController emailController = TextEditingController(text: "admin@beesteach.com");
+-  final TextEditingController passwordController = TextEditingController(text: "123456");
+-
++  final TextEditingController emailController = TextEditingController(text: "m@m.com");
++  final TextEditingController passwordController = TextEditingController(text: "909090");
+   bool _isLoading = false;
+ 
+   Future<void> _login() async {
+-    if (!["admin@beesteach.com", "admin@speeddirection.com"].contains(emailController.text.trim())) {
+-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+-        content: Text('Login failed. Please check your credentials.'),
+-      ));
+-      return;
+-    }
+     setState(() {
+       _isLoading = true;
+     });
+Index: lib/models/Shipment.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/models/Shipment.dart b/lib/models/Shipment.dart
+--- a/lib/models/Shipment.dart	
++++ b/lib/models/Shipment.dart	(date 1734379425177)
+@@ -1,5 +1,3 @@
+-import 'Driver.dart';
+-
+ class ShipmentLog {
+   final DateTime date;
+   final String text;
+@@ -108,10 +106,9 @@
+   final DateTime? deliveryDate;
+   final DateTime? expectedDeliveryDate;
+   final DateTime? postponementDate;
+-  final CashPossession cashPossession;
+-  final  Driver? driver;
++  final CashPossession cashPossession; // New field
+ 
+-  Shipment( {
++  Shipment({
+     required this.orderId,
+     this.username,
+     this.userId,
+@@ -140,8 +137,7 @@
+     this.deliveryDate,
+     this.expectedDeliveryDate,
+     this.postponementDate,
+-    required this.cashPossession,
+-    this.driver, constructor
++    required this.cashPossession, // Added to constructor
+   });
+ 
+   factory Shipment.fromMap(Map<String, dynamic> map) {
+@@ -180,11 +176,6 @@
+             (e) => e.toString().split('.').last == (map['cashPossession'] ?? 'branch'),
+         orElse: () => CashPossession.branch,
+       ),
+-      driver: map['driverId'] == null ? null : Driver(
+-        userid: map['driverId'],
+-        username: map['driverName'],
+-
+-      )
+     );
+   }
+ 
+Index: lib/shared/constants.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/shared/constants.dart b/lib/shared/constants.dart
+--- a/lib/shared/constants.dart	
++++ b/lib/shared/constants.dart	(date 1734379425173)
+@@ -1,7 +1,3 @@
+-import 'dart:ui';
+-
+-import 'package:flutter/material.dart';
+-
+ List list_btn=[
+   'مسار السائق التلقائي',
+ 
+@@ -11,29 +7,24 @@
+   'تحديد مسار السائق'
+ ];
+ 
+-final Map<String, Color> statusOptions = {
+-  "الطلبات الجديدة": const Color(0xFFB772B8),        // rgb(183, 114, 184)
+-  "بانتظار تعيين السائق": const Color(0xFFFAD16A),   // rgb(250, 209, 106)
+-  "في الفرع": const Color(0xFFFF914D),                // rgb(255, 145, 77)
+-  "بانتظار موافقة السائق": const Color(0xFFCCCCCC),  // rgb(204, 204, 204)
+-  "ملغاة": const Color(0xFFF24645),                   // rgb(242, 70, 69)
+-  "رفضها السائق": const Color(0xFFEC7063),           // rgb(236, 112, 99)
+-  "بانتظار التحميل": const Color(0xFF6A9CFA),        // rgb(106, 156, 250)
+-  "في المركبة": const Color(0xFF00E2FF),              // rgb(0, 226, 255)
+-  "على الرفوف": const Color(0xFF913463),             // rgb(145, 52, 99)
+-  "بانتظار مراجعة الإدارة": const Color(0xFFA10500), // rgb(161, 5, 0)
+-  "تم إرجاعها": const Color(0xFFCC7C68),             // rgb(204, 124, 104)
+-  "مؤجلة لوقت آخر": const Color(0xFF5EB4FF),         // rgb(94, 180, 255)
+-  "تم توصيلها": const Color(0xFF2ED47A),             // rgb(46, 212, 122)
+-  "مصدرة إلى شريك": const Color(0xFFB3404A),         // rgb(179, 64, 74)
+-  "مسودة": const Color(0xFF59788E),                  // rgb(89, 120, 142)
+-  "تالفة": const Color(0xFFF08080),                  // rgb(240, 128, 128)
+-};
+-
+-// Helper function to get color for a status
+-Color getStatusColor(String status) {
+-  return statusOptions[status] ?? Colors.grey; // Returns grey as fallback color
+-}
++final List<String> statusOptions = [
++  "الطلبات الجديدة",
++  "بانتظار تعيين السائق",
++  "في الفرع",
++  "بانتظار موافقة السائق",
++  "ملغاة",
++  "رفضها السائق",
++  "بانتظار التحميل",
++  "في المركبة",
++  "على الرفوف",
++  "بانتظار مراجعة الإدارة",
++  "تم إرجاعها",
++  "مؤجلة لوقت آخر",
++  "تم توصيلها",
++  "مصدرة إلى شريك",
++  "مسودة",
++  "تالفة",
++];
+ 
+ final List<String> paymentMethods = [
+ 
+@@ -78,213 +69,4 @@
+   'الرمثا',
+   'الرصيفة',
+   'البلقاء',
+-];
+-
+-final List<DataColumn> tableColumns = [
+-  DataColumn(label: SizedBox(width: 0, height: 0)),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "رقم الطرد",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 150,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "الوزن",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 150,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "السعر",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 50,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "COD",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "الزبون",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 150,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "هاتف المستقبل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "المرسل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "المستقبل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "الحالة",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "الإرسالية",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "طريقة الدفع",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "طريقة التحصيل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "تاريخ الحجز",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "تاريخ التوصيل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "تاريخ التوصيل المتوقع",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "تاريخ اخر حالة",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 200,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "تاريخ التأجيل",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-  DataColumn(
+-    label: Container(
+-      width: 250,
+-      padding: const EdgeInsets.symmetric(horizontal: 8),
+-      child: const Text(
+-        "ملاحظات",
+-        style: TextStyle(fontWeight: FontWeight.bold),
+-      ),
+-    ),
+-  ),
+-];
+-List<DataCell> tableRows = [
+-
+-    DataCell(Text('789012')),
+-    DataCell(Text('1.8')),
+-    DataCell(Text('35')),
+-    DataCell(Text('75 JOD')),
+-    DataCell(Text('سارة')),
+-    DataCell(Text('0777654321')),
+-    DataCell(Text('فاطمة')),
+-    DataCell(Text('خالد\nاربد')),
+-    DataCell(
+-      Text('تم توصيلها', ),
+-
+-    ),
+-    DataCell(Text('TR789012')),
+-    DataCell(Text('مدفوع مسبقا')),
+-    DataCell(Text('بطاقة ائتمانية')),
+-    DataCell(Text('2024-03-10')),
+-    DataCell(Text('2024-03-11')),
+-    DataCell(Text('2024-03-11')),
+-    DataCell(Text('2024-03-11')),
+-    DataCell(Text('')),
+-    DataCell(Text('يرجى الاتصال قبل التوصيل')),
+-
+ ];
+\ No newline at end of file
+Index: lib/shared/appProvider.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/shared/appProvider.dart b/lib/shared/appProvider.dart
+--- a/lib/shared/appProvider.dart	
++++ b/lib/shared/appProvider.dart	(date 1734379425171)
+@@ -62,8 +62,8 @@
+     firebaseHelper.assignDriver(orderId,driver);
+     notifyListeners();
+   }
+-  updateOrderStatus(String orderId,String status,Driver? driver, String? note){
+-    firebaseHelper.updateOrderStatus(orderId,status,driver,note);
++  updateOrderStatus(String orderId,String status,Driver? driver){
++    firebaseHelper.updateOrderStatus(orderId,status,driver);
+   }
+   updateOrderPrice(String orderId,double oldPrice,double price, String? userId){
+     firebaseHelper.updateOrderPrice(orderId,oldPrice,price,userId);
+Index: lib/shared/firebaseHelper.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/shared/firebaseHelper.dart b/lib/shared/firebaseHelper.dart
+--- a/lib/shared/firebaseHelper.dart	
++++ b/lib/shared/firebaseHelper.dart	(date 1734379425151)
+@@ -65,7 +65,7 @@
+ 
+     );
+   }
+-  Future<void> updateOrderStatus(String orderId,String status,Driver? driver, String? note)async{
++  Future<void> updateOrderStatus(String orderId,String status,Driver? driver)async{
+    if(status=="تم توصيلها") {
+      var shipmentData=await _fireStore.collection('orders').doc(orderId).get();
+ 
+@@ -75,8 +75,6 @@
+    }
+ 
+     await _fireStore.collection('orders').doc(orderId).update({
+-      if(note!=null)
+-        'notes':note,
+       'status':status,
+       'lastUpdated': DateTime.now().toIso8601String(),
+       if(status=="تم توصيلها")
+@@ -92,15 +90,7 @@
+               'text':'تم تغيير حالة الشحنة الى $status ${driver?.username??""}',
+               'status':status,
+               'userName':user?.displayName??"مجهول"
+-            },
+-            if(note!=null)
+-              {'date':DateTime.now().toIso8601String(),
+-                'text':'تم تغير ملاحظات الشحنة الى $note',
+-                'status':null,
+-                'userName':user?.displayName??"مجهول"
+-              }
+-
+-          ])
++            }])
+     });
+    if(driver!=null) {
+      _notificationService.createNotification(
+@@ -176,66 +166,29 @@
+     return FirebaseFirestore.instance.collection('users').where('cashBalance',isGreaterThan: 0).snapshots();
+ 
+   }
+-  Stream<List<Shipment>> getCustomersUserAccount(int selectedIndex) {
+-   String paymentStatus="";
+-   switch (selectedIndex) {
+-     case 5:
+-       paymentStatus="collected";
+-       break;
+-     case 6:
+-       paymentStatus="sorted";
+-       break;
+-     case 7:
+-       paymentStatus="exported";
+-       break;
+-
+-   }
+-    return _fireStore.collection('orders')
++  Future<List<UserAccount>>getCustomersUserAccount(List<Customer> customers) async{
++    List<UserAccount> userAccount = [];
++    for (var customer in customers) {
++      QuerySnapshot<Map<String, dynamic>> snapshot = await _fireStore.collection('orders').where('userId',isEqualTo: customer.userid)
+           .where('status',isEqualTo:"تم توصيلها")
+           .where('cashPossession',isEqualTo:"branch")
+-    .where('paymentStatus',isEqualTo: paymentStatus)
+-          .snapshots().map((snapshot){
++          .get();
+       List<Shipment> shipments = snapshot.docs.map((e) => Shipment.fromMap(e.data())).toList();
+-
+-      return shipments;
+-    });
++      userAccount.add(UserAccount.fromShipments(shipments));
+     }
+-   static Future<void> updatePaymentStatus(UserAccount userAccount,String paymentStatus)async{
+-   for (var shipment in userAccount.shipments) {
+-     await FirebaseFirestore.instance.collection('orders').doc(shipment.orderId).update({
+-       'paymentStatus':paymentStatus
+-     });
+-   }
+-
+-
+-    }
+-
+-
+-
+-
+-   Stream<List<DriverDeliveryData>>getDriverDeliveryData() {
++    return userAccount;
++  }
++   Future<List<DriverDeliveryData>>getDriverDeliveryData(List<Driver> drivers) async{
+    List<DriverDeliveryData> driverDeliveryData = [];
+- return _fireStore.collection('orders')
++    for (var driver in drivers) {
++      QuerySnapshot<Map<String, dynamic>> snapshot = await _fireStore.collection('orders').where('driverId',isEqualTo: driver.userid)
+          .where('status',isEqualTo:"تم توصيلها")
+       .where('cashPossession',isEqualTo:"driver")
+-         .snapshots().map((snapshot){
+-   List<Shipment> shipments = snapshot.docs.map((e) => Shipment.fromMap(e.data())).toList();
+-   List <List<Shipment>> groups = [];
+-   for (var shipment in shipments) {
+-     if(!groups.any((element) => element.first.driverId==shipment.driverId)){
+-       groups.add([shipment]);
+-     }else{
+-       groups.firstWhere((element) => element.first.driverId==shipment.driverId).add(shipment);
+-     }
+-   }
+-
+-   for (var group in groups) {
+-     driverDeliveryData.add(
+-         DriverDeliveryData.fromShipments(group.first.driverName!, group));
+-   }
+-   return driverDeliveryData;
+-         });
+-
++         .get();
++      List<Shipment> shipments = snapshot.docs.map((e) => Shipment.fromMap(e.data())).toList();
++      driverDeliveryData.add(DriverDeliveryData.fromShipments(driver.username!, shipments));
++    }
++    return driverDeliveryData;
+   }
+ 
+   Future receiveOrdersFromDriver(DriverDeliveryData driverData) async{
+@@ -248,7 +201,6 @@
+       await _fireStore.collection('orders').doc(shipment.orderId).update({
+ 
+         'cashPossession':'branch',
+-        'paymentStatus':'collected',
+         'lastUpdated': DateTime.now().toIso8601String(),
+         'logs': FieldValue.arrayUnion([
+           {
+@@ -261,7 +213,7 @@
+       });
+       if(shipment.userId!=null) {
+         _fireStore.collection('users').doc(shipment.userId).update({
+-        'cashBalance':FieldValue.increment(shipment.codAmount-shipment.deliveryCost)
++        'cashBalance':FieldValue.increment(shipment.codAmount)
+       });
+       }
+ 
+@@ -274,7 +226,7 @@
+   }
+   Future payOrdersToCustomer(UserAccount userAccount  ) async{
+     _fireStore.collection('users').doc(userAccount.id).update({
+-      'cashBalance':FieldValue.increment(-userAccount.totalAmount-userAccount.servicesFees)
++      'cashBalance':FieldValue.increment(-userAccount.totalAmount)
+     });
+ 
+     for (var shipment in userAccount.shipments) {
+Index: lib/shared/ExcelImportHandler.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/shared/ExcelImportHandler.dart b/lib/shared/ExcelImportHandler.dart
+--- a/lib/shared/ExcelImportHandler.dart	
++++ b/lib/shared/ExcelImportHandler.dart	(date 1734379425149)
+@@ -25,22 +25,17 @@
+ 
+         for (var table in excel.tables.keys) {
+           var rows = excel.tables[table]!.rows;
++
+           for (int i = 1; i < rows.length; i++) {
+-           late  var row = rows[i];
+-            DocumentReference  ref;
+-var sameUser=  batchData.where((e) => e['username'] == _getCellValue(row, 2));
+-            if(sameUser.isEmpty){
+-              ref= _firestore.collection('users').doc();
++            var row = rows[i];
++            var ref= _firestore.collection('users').doc();
+ 
+-              ref .set({
+-                "userid": ref.id,
+-                "username": _getCellValue(row, 2),
+-                'cashBalance': 0,
+-              });
+-            }else{
+-              ref= _firestore.collection('users').doc(sameUser.first['userid']);
+-            }
+-
++            ref .set({
++              "userid": ref.id,
++              "username": _getCellValue(row, 2),
++
++              'cashBalance': 0,
++            });
+             Map<String, dynamic> shipmentData = {
+               'userId':ref.id,
+               'orderId': _getCellValue(row, 0),
+Index: lib/screens/dashboard/drawer/SideDrawer.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/dashboard/drawer/SideDrawer.dart b/lib/screens/dashboard/drawer/SideDrawer.dart
+--- a/lib/screens/dashboard/drawer/SideDrawer.dart	
++++ b/lib/screens/dashboard/drawer/SideDrawer.dart	(date 1734379003622)
+@@ -68,17 +68,15 @@
+                 customListTile(selected: selectedIndex == 4, icon: Icons.directions_car, title: 'إدارة المستخدمين', onTap: () => onTileSelected(4)),
+                 customListTile(
+                   icon: Icons.account_balance_wallet, title: 'المحاسبة', children: [
+-                  customListTile(selected: selectedIndex == 5, icon: Icons.receipt, title: 'استلام التحصيلات', onTap: () => onTileSelected(5)),
+-                  customListTile(selected: selectedIndex == 6, icon: Icons.inventory, title: 'التحصيلات المفرزة', onTap: () => onTileSelected(6)),
+-                  customListTile(selected: selectedIndex == 7, icon: Icons.send, title: 'التحصيلات المصدرة', onTap: () => onTileSelected(7)),
+-                  customListTile(selected: selectedIndex == 8, icon: Icons.done_all, title: 'التحصيلات المسلمه', onTap: () => onTileSelected(8)),
+-                  customListTile(selected: selectedIndex == 9, icon: Icons.calculate, title: 'حاسبة الاسعار', onTap: () => onTileSelected(9)),
++                  customListTile(selected: selectedIndex == 5, icon: Icons.calculate, title: 'حاسبة الاسعار', onTap: () => onTileSelected(5)),
++                  customListTile(selected: selectedIndex == 6, icon: Icons.receipt, title: 'استلام التحصيلات', onTap: () => onTileSelected(6)),
++                  customListTile(selected: selectedIndex == 7, icon: Icons.description, title: 'الفواتير المصدرة', onTap: () => onTileSelected(7)),
+                 ],),
+                 customListTile(icon: Icons.admin_panel_settings, title: 'الادارة', children: [
+-                  customListTile(selected: selectedIndex == 10, icon: Icons.location_city, title: 'اداره المناطق', onTap: () => onTileSelected(10)),
++                  customListTile(selected: selectedIndex == 8, icon: Icons.location_city, title: 'اداره المناطق', onTap: () => onTileSelected(8)),
+                 ]),
+-              ],
+ 
++              ],
+             ),
+           ),
+         ],
+Index: lib/screens/dashboard/dashboard.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/dashboard/dashboard.dart b/lib/screens/dashboard/dashboard.dart
+--- a/lib/screens/dashboard/dashboard.dart	
++++ b/lib/screens/dashboard/dashboard.dart	(date 1734379003570)
+@@ -85,7 +85,7 @@
+                   header(),
+                   Expanded(
+                     child: IndexedStack(
+-                      index: findIndex(selectedIndex),
++                      index: selectedIndex == 2 ? 1 : selectedIndex,
+                       children: [
+                         dashboardScreen(), //0
+                         ManageShipmentsScreen(
+@@ -95,12 +95,9 @@
+                         VehicleListScreen(), //5
+                         UsersScreen(), //6
+ 
+-                        Accounting(selectedIndex: selectedIndex,),//11
+-                        SizedBox(),
+-                        SizedBox(),
+-                        ExportedInvoices(),//12
+                         PriceCalculator(), //10
+-
++                        Accounting(),//11
++                        ExportedInvoices(),//12
+                         AreaManagement(), //13
+                       ],
+                     ),
+@@ -113,16 +110,4 @@
+       ),
+     );
+   }
+-}
+-
+-int findIndex(int index) {
+-  if (index == 2) {
+-    return 1;
+-  }
+-  else if ([ 6, 7].contains(index)) {
+-    return 5;
+-  }
+-  else {
+-    return index;
+-  }
+ }
+\ No newline at end of file
+Index: lib/screens/Accounting/Accounting.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/Accounting/Accounting.dart b/lib/screens/Accounting/Accounting.dart
+--- a/lib/screens/Accounting/Accounting.dart	
++++ b/lib/screens/Accounting/Accounting.dart	(date 1734379003425)
+@@ -1,5 +1,4 @@
+ import 'package:cloud_firestore/cloud_firestore.dart';
+-import '../models/Shipment.dart';
+ import '../shared/PrintHelper.dart';
+ import 'package:firebase_auth/firebase_auth.dart';
+ import 'package:flutter/material.dart';
+@@ -12,8 +11,7 @@
+ import 'ShipmentReceiptDialog.dart';
+ 
+ class Accounting extends StatefulWidget {
+-  final int selectedIndex;
+-  const Accounting({Key? key, required this.selectedIndex}) : super(key: key);
++  const Accounting({Key? key}) : super(key: key);
+ 
+   @override
+   State<Accounting> createState() => _AccountingState();
+@@ -30,6 +28,7 @@
+         body: Column(
+           crossAxisAlignment: CrossAxisAlignment.stretch,
+           children: [
++
+             _buildTopActions(),
+             _buildTableHeader(),
+             Expanded(
+@@ -38,52 +37,54 @@
+                   decoration: BoxDecoration(
+                     border: Border.all(color: Colors.grey.shade300),
+                   ),
+-                  child: StreamBuilder<List<Shipment>>(
+-                      stream: FirebaseHelper().getCustomersUserAccount(widget.selectedIndex),
++                  child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
++                      stream: FirebaseHelper.usersWithWithCashBalanceStream(),
+                       builder: (context, snapshot) {
+-                        if (snapshot.connectionState ==
+-                            ConnectionState.waiting) {
+-                          return const Center(
+-                              child: CircularProgressIndicator());
++                        if (snapshot.connectionState == ConnectionState.waiting) {
++                          return const Center(child: CircularProgressIndicator());
+                         }
+ 
+                         if (snapshot.hasError) {
+-                          print(snapshot.error);
+                           return Text('Error: ${snapshot.error}');
+                         }
+-
+-                        List<UserAccount> userAccount = [];
+-                        List <Shipment> shipments = snapshot.data ?? [];
+-                        List<List<Shipment>> customerShipments = [];
++                        List<Customer> customers = snapshot.data!.docs
++                            .map((e) => Customer.fromJson(e.data()))
++                            .toList();
+ 
+-                        for (var shipment in shipments) {
+-                          if (customerShipments.isEmpty || customerShipments.last.last.userId != shipment.userId) {
+-                            customerShipments.add([shipment]);
+-                          } else {
+-                            customerShipments.last.add(shipment);
+-                          }
+-                        }
++                        for (var customer in customers) {
++                          print(customer.toString());
++                        }
++                        return FutureBuilder<List<UserAccount>>(
++                            future: FirebaseHelper().getCustomersUserAccount(customers),
++                            builder: (context, snapshot) {
++                              if (snapshot.connectionState == ConnectionState.waiting) {
++                                return const Center(child: CircularProgressIndicator());
++                              }
+ 
+-                        for (var shipment in customerShipments) {
+-                          userAccount.add(UserAccount.fromShipments(shipment));
+-                        }
+-                        userAccounts = userAccount;
++                              // if (snapshot.hasError) {
++                              //   return Text('Error: ${snapshot.error}');
++                              // }
++                              userAccounts =
++                                  snapshot.data ?? [];
++
++                              print(userAccounts.length);
+ 
+-                        return DataTable(
+-                          columns: _createColumns(),
+-                          rows: _createRows(),
+-                          columnSpacing: 15,
+-                          horizontalMargin: 10,
+-                          headingRowHeight: 40,
+-                          dataRowHeight: 45,
+-                          border: TableBorder(
+-                            horizontalInside:
+-                                BorderSide(color: Colors.grey.shade300),
+-                            verticalInside:
+-                                BorderSide(color: Colors.grey.shade300),
+-                          ),
+-                        );
+-                      }),
++                          return DataTable(
++                            columns: _createColumns(),
++                            rows: _createRows(),
++                            columnSpacing: 15,
++                            horizontalMargin: 10,
++                            headingRowHeight: 40,
++                            dataRowHeight: 45,
++                            border: TableBorder(
++                              horizontalInside: BorderSide(color: Colors.grey.shade300),
++                              verticalInside: BorderSide(color: Colors.grey.shade300),
++                            ),
++                          );
++                        }
++                      );
++                    }
++                  ),
+                 ),
+               ),
+             ),
+@@ -105,31 +106,20 @@
+       ),
+       child: Row(
+         children: [
+-          // customListTile(selected: selectedIndex == 6, icon: Icons.receipt, title: 'استلام التحصيلات', onTap: () => onTileSelected(6)),
+-          // customListTile(selected: selectedIndex == 7, icon: Icons.inventory, title: 'التحصيلات المفرزة', onTap: () => onTileSelected(7)),
+-          // customListTile(selected: selectedIndex == 8, icon: Icons.send, title: 'التحصيلات المصدرة', onTap: () => onTileSelected(8)),
+-          if (widget.selectedIndex == 5)...[
+-          Text('استلام التحصيلات', style: const TextStyle(fontWeight: FontWeight.bold),),
+-          _buildActionButton('إستلام مجموعة طرود من سائق', true, onPressed: () {
+-            showDialog(
+-              context: context,
+-              builder: (BuildContext context) {
+-                return const ShipmentReceiptDialog();
+-              },
+-            );
++          _buildActionButton('إستلام مجموعة طرود من سائق', true,
++          onPressed:   (){
++              showDialog(
++                context: context,
++                builder: (BuildContext context) {
++                  return const ShipmentReceiptDialog();
++                },
++              );
+           }),
+-          ],
+-          if (widget.selectedIndex == 6)
+-          Text('التحصيلات المفرزة', style: const TextStyle(fontWeight: FontWeight.bold),),
+-
+-           if (widget.selectedIndex == 7)
+-          Text('التحصيلات المصدرة', style: const TextStyle(fontWeight: FontWeight.bold),),
+-
+           // _buildActionButton('قائمة التطبيقات', false),
+           // _buildActionButton('تصدير حسب الراتب', false),
+           // _buildActionButton('جديد', false),
+           const Spacer(),
+-          // _buildIconButton(Icons.file_download, 'تصدير\nللإكسل'),
++         // _buildIconButton(Icons.file_download, 'تصدير\nللإكسل'),
+           // _buildIconButton(Icons.print, 'طباعة'),
+           // _buildIconButton(Icons.refresh, 'تحديث'),
+         ],
+@@ -137,8 +127,7 @@
+     );
+   }
+ 
+-  Widget _buildActionButton(String text, bool isActive,
+-      {Null Function()? onPressed}) {
++  Widget _buildActionButton(String text, bool isActive, {Null Function()? onPressed}) {
+     return Container(
+       margin: const EdgeInsets.symmetric(horizontal: 4),
+       child: ElevatedButton(
+@@ -154,7 +143,26 @@
+     );
+   }
+ 
+-
++  Widget _buildIconButton(IconData icon, String label) {
++    return Container(
++      margin: const EdgeInsets.symmetric(horizontal: 4),
++      child: Column(
++        mainAxisSize: MainAxisSize.min,
++        children: [
++          IconButton(
++            icon: Icon(icon),
++            onPressed: () {},
++            color: Colors.grey[700],
++          ),
++          Text(
++            label,
++            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
++            textAlign: TextAlign.center,
++          ),
++        ],
++      ),
++    );
++  }
+ 
+   Widget _buildTableHeader() {
+     return Container(
+@@ -236,13 +244,11 @@
+       'إجراءات',
+     ];
+ 
+-    return columns
+-        .map((String column) => DataColumn(
+-              label: column.isEmpty
+-                  ? Checkbox(value: false, onChanged: (bool? value) {})
+-                  : Text(column, textAlign: TextAlign.center),
+-            ))
+-        .toList();
++    return columns.map((String column) => DataColumn(
++      label: column.isEmpty
++          ? Checkbox(value: false, onChanged: (bool? value) {})
++          : Text(column, textAlign: TextAlign.center),
++    )).toList();
+   }
+ 
+   List<DataRow> _createRows() {
+@@ -266,42 +272,14 @@
+           DataCell(Row(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+-
+-              if(widget.selectedIndex==5)
+-              IconButton(
+-                icon: const Icon(
+-
+-                    Icons.inventory,
+-                    size: 20),
+-                onPressed: () {
+-                  FirebaseHelper.updatePaymentStatus(shipment, "sorted");
+-                },
+-                padding: EdgeInsets.zero,
+-              ),
+-              if(widget.selectedIndex==6)
+-              IconButton(
+-                icon: const Icon(
+-
+-                    Icons.send,
+-                    size: 20),
+-                onPressed: () {
+-                  FirebaseHelper.updatePaymentStatus(shipment, "exported");
+-
+-                },
+-                padding: EdgeInsets.zero,
+-              ),
+-              if(widget.selectedIndex==7)
+               IconButton(
+                 icon: const Icon(
+-                    //payment
+-                    Icons.payment,
+-                    size: 20),
++                  //payment
++                    Icons.payment, size: 20),
+                 onPressed: () {
+                   showDialog(
+                     context: context,
+-                    builder: (context) => PaymentSelectionDialog(
+-                      userAccount: shipment,
+-                    ),
++                    builder: (context) =>  PaymentSelectionDialog(userAccount: shipment,),
+                   );
+                 },
+                 padding: EdgeInsets.zero,
+@@ -376,4 +354,6 @@
+   double _calculateTotal() {
+     return userAccounts.fold(0, (sum, shipment) => sum + shipment.totalAmount);
+   }
++
+ }
++
+Index: lib/screens/Accounting/ShipmentReceiptDialog.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/Accounting/ShipmentReceiptDialog.dart b/lib/screens/Accounting/ShipmentReceiptDialog.dart
+--- a/lib/screens/Accounting/ShipmentReceiptDialog.dart	
++++ b/lib/screens/Accounting/ShipmentReceiptDialog.dart	(date 1734379003382)
+@@ -135,23 +135,40 @@
+   Widget _buildDataTable(AppProvider appProvider) {
+     return Expanded(
+ 
+-      child: StreamBuilder<List<DriverDeliveryData>>(
+-          stream: FirebaseHelper().getDriverDeliveryData(),
++      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
++          stream: FirebaseHelper.driversWithWithCashBalanceStream(),
+           builder: (context, snapshot) {
+             if (snapshot.connectionState == ConnectionState.waiting) {
+               return const Center(child: CircularProgressIndicator());
+             }
++
++            if (snapshot.hasError) {
++              return Text('Error: ${snapshot.error}');
++            }
++            List<Driver> drivers = snapshot.data!.docs
++                .map((e) => Driver.fromJson(e.data()))
++                .toList();
++            print(snapshot.data!.docs);
++            for (var driver in drivers) {
++              print(driver.toMap());
++            }
++            return FutureBuilder<List<DriverDeliveryData>>(
++                future: FirebaseHelper().getDriverDeliveryData(drivers),
++                builder: (context, snapshot) {
++                  if (snapshot.connectionState == ConnectionState.waiting) {
++                    return const Center(child: CircularProgressIndicator());
++                  }
+ 
+-            if (snapshot.hasError) {
+-              return Text('Error: ${snapshot.error}');
+-            }
+-            deliveryDataList =
+-                snapshot.data ?? [];
+-            if(appProvider.selectedDriver!=null) {
+-              deliveryDataList=deliveryDataList.where((element) => element.driverName==appProvider.selectedDriver?.username).toList(); // filter deliveryDataList.
+-            }
++                  if (snapshot.hasError) {
++                    return Text('Error: ${snapshot.error}');
++                  }
++                   deliveryDataList =
++                      snapshot.data ?? [];
++                  if(appProvider.selectedDriver!=null) {
++                    deliveryDataList=deliveryDataList.where((element) => element.driverName==appProvider.selectedDriver?.username).toList(); // filter deliveryDataList.
++                  }
+ 
+-            print(deliveryDataList.length);
++      print(deliveryDataList.length);
+                   return DataTable(
+                     columns: const [
+                       DataColumn(label: Text('اسم السائق')),
+@@ -206,8 +223,8 @@
+                       );
+                     }).toList(),
+                   );
+-                })
+-
++                });
++          }),
+     );
+   }
+ }
+Index: lib/screens/ManageShipments/widget/Customtext.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/widget/Customtext.dart b/lib/screens/ManageShipments/widget/Customtext.dart
+--- a/lib/screens/ManageShipments/widget/Customtext.dart	
++++ b/lib/screens/ManageShipments/widget/Customtext.dart	(date 1734379425116)
+@@ -2,16 +2,13 @@
+ 
+ class Customtext extends StatelessWidget {
+   String title;
+-  Color? color;
+-  Customtext({super.key,required this.title,this.color});
++  Customtext({super.key,required this.title});
+ 
+   @override
+   Widget build(BuildContext context) {
+     return Center(
+       child: Text(get_str(title),
+-      textAlign: TextAlign.center,
+-      style: TextStyle(color: color),),
+-
++      textAlign: TextAlign.center,),
+     );
+   }
+   String get_str(String value){
+Index: lib/screens/ManageShipments/widget/CustomDropdown.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/widget/CustomDropdown.dart b/lib/screens/ManageShipments/widget/CustomDropdown.dart
+--- a/lib/screens/ManageShipments/widget/CustomDropdown.dart	
++++ b/lib/screens/ManageShipments/widget/CustomDropdown.dart	(date 1734379425106)
+@@ -1,7 +1,6 @@
+ import 'package:flutter/material.dart';
+ 
+ import '../../../durub/colors.dart';
+-import '../../../shared/constants.dart';
+ 
+ class CustomDropdown extends StatelessWidget {
+   final String? value;
+@@ -12,7 +11,6 @@
+   final double width;
+   final String? hintText;
+   final bool isExpanded;
+-  final bool? childRow;
+    final void Function()? onClearPressed;
+ 
+   const CustomDropdown({
+@@ -25,7 +23,7 @@
+     this.prefixIcon,
+     this.width = 150,
+     this.hintText,
+-    this.isExpanded = true, this.onClearPressed, this.childRow,
++    this.isExpanded = true, this.onClearPressed,
+   }) : super(key: key);
+ 
+   @override
+@@ -53,23 +51,7 @@
+         items: items.map((String item) {
+           return DropdownMenuItem<String>(
+             value: item,
+-            child: childRow==null?Text(item):
+-            Row(
+-              children: [
+-                Container(
+-                  margin: const EdgeInsets.only(left: 2),
+-                  decoration: BoxDecoration(
+-                    color: getStatusColor(item),
+-                    borderRadius: BorderRadius.circular(20),
+-                  ),
+-                  width: 16,
+-                  height: 16,
+-                ),
+-
+-                Text(item),
+-
+-              ],
+-            ),
++            child: Text(item),
+           );
+         }).toList(),
+         onChanged: onChanged,
+Index: lib/screens/ManageShipments/widget/CounterTextFormField.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/widget/CounterTextFormField.dart b/lib/screens/ManageShipments/widget/CounterTextFormField.dart
+--- a/lib/screens/ManageShipments/widget/CounterTextFormField.dart	
++++ b/lib/screens/ManageShipments/widget/CounterTextFormField.dart	(date 1734379003306)
+@@ -78,7 +78,7 @@
+       controller: _controller,
+       validator: widget.validator,
+       keyboardType: TextInputType.number,
+-      textAlign: TextAlign.start,
++      textAlign: TextAlign.center,
+       inputFormatters: [
+         FilteringTextInputFormatter.allow(RegExp(widget.isInteger ? r'[0-9]' : r'[0-9.]')),
+       ],
+Index: lib/screens/ManageShipments/ShipmentDetails.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/ShipmentDetails.dart b/lib/screens/ManageShipments/ShipmentDetails.dart
+--- a/lib/screens/ManageShipments/ShipmentDetails.dart	
++++ b/lib/screens/ManageShipments/ShipmentDetails.dart	(date 1734379425103)
+@@ -36,19 +36,13 @@
+       child: Container(
+         color: background,
+         width: MediaQuery.of(context).size.width * .70,
+-        child: SingleChildScrollView(
+-
+-          child: SizedBox(
+-            height:MediaQuery.of(context).size.height +widget.shipment!.logs.length*40,
+-            child: Column(
+-              children: [
+-                _buildActionButtons(),
+-                _buildShipmentHeader(),
+-                _buildTabBar(),
+-                _buildTabContent(),
+-              ],
+-            ),
+-          ),
++        child: Column(
++          children: [
++            _buildActionButtons(),
++            _buildShipmentHeader(),
++            _buildTabBar(),
++            _buildTabContent(),
++          ],
+         ),
+       ),
+     );
+@@ -311,36 +305,39 @@
+   }
+ 
+   Widget _buildMovementsTab() {
+-    return Column(
+-      children: (widget.shipment?.logs ?? []).map((log) {
++    return ListView.builder(
++      reverse: true,
++      itemCount: widget.shipment?.logs.length ?? 0,
++      itemBuilder: (context, index) {
++        final log = widget.shipment?.logs[index];
+         return ListTile(
+           leading: const Icon(Icons.circle, size: 12),
+           title: Text(log?.text ?? ''),
+           subtitle: Text('${_formatDate(log?.date ?? DateTime.now())} - by ${log?.userName ?? ''}'),
+-          trailing: log?.status != null
+-              ? Text(
+-            log!.status.toString(),
+-            style: const TextStyle(fontWeight: FontWeight.bold),
+-          )
+-              : null,
++
++          trailing: log?.status !=null ?Text(log!.status.toString(),style: const TextStyle(fontWeight: FontWeight.bold),):null,
++
+         );
+-      }).toList().reversed.toList(),
++      },
+     );
+   }
+ 
+   Widget _buildStatusTrackingTab() {
+-    List<ShipmentLog> status = widget.shipment?.logs.where((e) => e.status != null).toList() ?? [];
+-
+-    return Column(
+-      children: status.map((log) {
++    List<ShipmentLog> status= widget.shipment?.logs.where((e)=>e.status != null).toList() ?? [];
++    return ListView.builder(
++      reverse: true,
++      itemCount: status.length ,
++      itemBuilder: (context, index) {
++        final log = status[index];
+         return ListTile(
+           leading: const Icon(Icons.circle, size: 12),
+           title: Text(log.status ?? ''),
+           subtitle: Text(_formatDate(log.date)),
+         );
+-      }).toList().reversed.toList(),
++      },
+     );
+   }
++
+   Widget _infoRow(String label, String value) {
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 4.0),
+Index: lib/screens/ManageShipments/DeliveryReceiveDialog.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/DeliveryReceiveDialog.dart b/lib/screens/ManageShipments/DeliveryReceiveDialog.dart
+--- a/lib/screens/ManageShipments/DeliveryReceiveDialog.dart	
++++ b/lib/screens/ManageShipments/DeliveryReceiveDialog.dart	(date 1734379425078)
+@@ -446,7 +446,7 @@
+             onPressed: () {
+               String status = widget.index == 0 ? "في الفرع" : "تم إرجاعها";
+               for(String orderId in selectedOrderIds){
+-                appProvider.updateOrderStatus(orderId, status, null, null);
++                appProvider.updateOrderStatus(orderId, status, null);
+               }
+               Navigator.pop(context);
+             },
+Index: lib/screens/ManageShipments/ManageShipmentsScreen.dart
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/screens/ManageShipments/ManageShipmentsScreen.dart b/lib/screens/ManageShipments/ManageShipmentsScreen.dart
+--- a/lib/screens/ManageShipments/ManageShipmentsScreen.dart	
++++ b/lib/screens/ManageShipments/ManageShipmentsScreen.dart	(date 1734379424751)
+@@ -41,7 +41,6 @@
+ 
+   final ScrollController _horizontalScrollController = ScrollController();
+   final ScrollController _verticalScrollController = ScrollController();
+-  final ScrollController _headerHorizontalScrollController = ScrollController();
+   final int _limitIncrement = 20;
+   int _limit = 20;
+   bool _isLoading = false;
+@@ -234,17 +233,6 @@
+   @override
+   void initState() {
+     super.initState();
+-    Future.delayed(Duration.zero, () {
+-      _horizontalScrollController.jumpTo(_horizontalScrollController.position.maxScrollExtent);
+-
+-    });
+-    _horizontalScrollController.addListener((){
+-      print(_horizontalScrollController.offset);
+-      print(_headerHorizontalScrollController.offset);
+-      print(_horizontalScrollController.position.maxScrollExtent);
+-     _headerHorizontalScrollController.jumpTo(_horizontalScrollController.position.maxScrollExtent-_horizontalScrollController.offset);
+-    });
+-
+ 
+     //_verticalScrollController.addListener(_onScroll);
+     _fetchUsers();
+@@ -781,7 +769,7 @@
+                               height: 30.0,
+                               isLoading: false,
+                               enabled: selectedOrderIds.isNotEmpty &&
+-                                  selectedStatus == "الطلبات الجديدة",
++                                  selectedStatus == statusOptions.first,
+                             ),
+                             CustomButton(
+                               text: 'تغير الحاله',
+@@ -820,7 +808,6 @@
+                             //     enabled: false,
+                             //   );
+                             // }).toList(),
+-
+                             CustomButton(
+                               text: 'حذف الطرود المحددة',
+                               onPressed: () {
+@@ -847,465 +834,412 @@
+                     Expanded(
+                       child: Container(
+                         padding: const EdgeInsets.only(
+-                            top: 20, right: 0, bottom: 50),
++                            top: 20, right: 15, bottom: 50),
+                         alignment: Alignment.topRight,
+-                        child: Column(
+-
+-                          children: [
+-                            SingleChildScrollView(
+-
+-                              controller: _headerHorizontalScrollController,
+-                              scrollDirection: Axis.horizontal,
+-                              child: DataTable(
+-                                headingRowHeight: kMinInteractiveDimension,
+-                                dataRowHeight: 0,
+-                                showCheckboxColumn: false,
+-                                checkboxHorizontalMargin: 0,
+-                                horizontalMargin: 15,
+-                                columnSpacing: 45,
+-
+-
+-
+-                                columns: [
+-                                  DataColumn(
+-                                    label: Checkbox(
+-                                      value: selectedOrderIds.length == filteredOrders.length && filteredOrders.isNotEmpty,
+-                                      tristate: selectedOrderIds.isNotEmpty && selectedOrderIds.length != filteredOrders.length,
+-
+-                                      onChanged: (checked) {
+-                                        setState(() {
+-                                          if (checked == true) {
+-                                            selectedOrderIds = filteredOrders.map((e) => e.orderId).toSet();
+-                                          } else {
+-                                            selectedOrderIds = {};
+-                                          }
+-                                        });
+-                                      },
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 200,
+-                                      labelText: "رقم الطرد",
+-                                      hintText: "ادخل رقم الطرد",
+-                                      prefixIcon: Icons.numbers,
+-                                      controller: _orderIdController,
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 150,
+-                                      labelText: "الوزن",
+-                                      hintText: "ادخل الوزن",
+-                                      prefixIcon: Icons.scale,
+-                                      controller: _weightController,
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 200,
+-                                      labelText: "السعر",
+-                                      hintText: "ادخل السعر",
+-                                      prefixIcon: Icons.monetization_on_outlined,
+-                                      controller: _priceController,
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-
+-                                    label: SizedBox(
+-                                      width: 100,
+-                                        child: Text('COD')),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomDropdown(
+-                                      width: 200,
+-                                      labelText: 'الزبون',
+-                                      prefixIcon: Icons.person_outline,
+-                                      value: selectedCustomer,
+-                                      items: appProvider.customers
+-                                          .map((e) => e.username)
+-                                          .toList(),
+-                                      onClearPressed: () {
+-                                        setState(() {
+-                                          selectedCustomer = null;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                      onChanged: (String? newValue) {
+-                                        setState(() {
+-                                          selectedCustomer = newValue!;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 200,
+-                                      labelText: 'هاتف المستقبل',
+-                                      hintText: "ادخل رقم الهاتف",
+-                                      prefixIcon: Icons.phone,
+-                                      controller: _phoneController,
+-                                      keyboardType: TextInputType.phone,
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CompositedTransformTarget(
+-                                      link: _layerLink,
+-                                      child: CustomTextField(
+-                                        width: 200,
+-                                        readOnly: true,
+-                                        onTap: () {
+-                                          setState(() {
+-                                            _overlayEntry?.remove();
+-                                            _overlayEntry = null;
+-                                            if (_overlayEntry == null) {
+-                                              _showOverlaySender(context);
+-                                            }
+-                                          });
+-                                        },
+-                                        labelText: 'المرسل',
+-                                        hintText: "ادخل اسم المرسل",
+-                                        prefixIcon: Icons.person_outline,
+-                                        controller: _senderNameController,
+-                                      ),
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CompositedTransformTarget(
+-                                      link: _layerLinkRecipient,
+-                                      child: CustomTextField(
+-                                        readOnly: true,
+-                                        onTap: () {
+-                                          setState(() {
+-                                            _overlayEntry?.remove();
+-                                            _overlayEntry = null;
+-                                            if (_overlayEntry == null) {
+-                                              _showOverlayRecipient(context);
+-                                            }
+-                                          });
+-                                        },
+-                                        width: 200,
+-                                        labelText: 'المستقبل',
+-                                        hintText: "ادخل اسم المستقبل",
+-                                        prefixIcon: Icons.person_outline,
+-                                        controller: _recipientNameController,
+-                                      ),
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomDropdown(
+-                                      width: 250,
+-                                      labelText: 'الحالة',
+-                                      prefixIcon: Icons.info_outline,
+-                                      value: selectedStatus,
+-                                      items: statusOptions.keys.toList(),
+-                                      childRow: true,
+-                                      onClearPressed: () {
+-                                        setState(() {
+-                                          selectedStatus = null;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                      onChanged: (String? newValue) {
+-                                        setState(() {
+-                                          selectedStatus = newValue!;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 200,
+-                                      labelText: 'الإرسالية',
+-                                      hintText: "ادخل رقم الإرسالية",
+-                                      prefixIcon: Icons.local_shipping_outlined,
+-                                      controller: _trackingNumberController,
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomDropdown(
+-                                      width: 200,
+-                                      labelText: 'طريقة الدفع',
+-                                      prefixIcon: Icons.payment,
+-                                      value: selectedPaymentMethod,
+-                                      items: paymentMethods,
+-                                      onClearPressed: () {
+-                                        setState(() {
+-                                          selectedPaymentMethod = null;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                      onChanged: (String? newValue) {
+-                                        setState(() {
+-                                          selectedPaymentMethod = newValue!;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                    ),
+-                                  ),
+-                                  DataColumn(
+-                                    label: CustomDropdown(
+-                                      width: 200,
+-                                      labelText: 'طريقة التحصيل',
+-                                      prefixIcon: Icons.account_balance_wallet,
+-                                      value: selectedCollectionMethod,
+-                                      items: collectionMethods,
+-                                      onClearPressed: () {
+-                                        setState(() {
+-                                          selectedCollectionMethod = null;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                      onChanged: (String? newValue) {
+-                                        setState(() {
+-                                          selectedCollectionMethod = newValue!;
+-                                          _applyFiltersLocally();
+-                                        });
+-                                      },
+-                                    ),
+-                                  ),
+-                                  // Date fields
+-                                  ...{
+-                                    'تاريخ الحجز': _bookingDateController,
+-                                    'تاريخ التوصيل': _deliveryDateController,
+-                                    'تاريخ التوصيل المتوقع':
++                        child: CustomScrollbar(
++                          verticalScrollController: _verticalScrollController,
++                          horizontalScrollController:
++                              _horizontalScrollController,
++                          child: DataTable(
++                            onSelectAll: (checked) {
++                              print(checked);
++                              if (checked == true) {
++                                setState(() {
++                                  selectedOrderIds = filteredOrders
++                                      .map((e) => e.orderId)
++                                      .toSet();
++                                });
++                              } else {
++                                setState(() {
++                                  selectedOrderIds = {};
++                                });
++                              }
++                            },
++                            dividerThickness: .5,
++                            columns: [
++                              DataColumn(
++                                label: CustomTextField(
++                                  width: 200,
++                                  labelText: "رقم الطرد",
++                                  hintText: "ادخل رقم الطرد",
++                                  prefixIcon: Icons.numbers,
++                                  controller: _orderIdController,
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomTextField(
++                                  width: 200,
++                                  labelText: "الوزن",
++                                  hintText: "ادخل الوزن",
++                                  prefixIcon: Icons.scale,
++                                  controller: _weightController,
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomTextField(
++                                  width: 200,
++                                  labelText: "السعر",
++                                  hintText: "ادخل السعر",
++                                  prefixIcon: Icons.monetization_on_outlined,
++                                  controller: _priceController,
++                                ),
++                              ),
++                              DataColumn(
++                                label: Text('COD'),
++                              ),
++                              DataColumn(
++                                label: CustomDropdown(
++                                  width: 200,
++                                  labelText: 'الزبون',
++                                  prefixIcon: Icons.person_outline,
++                                  value: selectedCustomer,
++                                  items: appProvider.customers
++                                      .map((e) => e.username)
++                                      .toList(),
++                                  onClearPressed: () {
++                                    setState(() {
++                                      selectedCustomer = null;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                  onChanged: (String? newValue) {
++                                    setState(() {
++                                      selectedCustomer = newValue!;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomTextField(
++                                  width: 200,
++                                  labelText: 'هاتف المستقبل',
++                                  hintText: "ادخل رقم الهاتف",
++                                  prefixIcon: Icons.phone,
++                                  controller: _phoneController,
++                                  keyboardType: TextInputType.phone,
++                                ),
++                              ),
++                              DataColumn(
++                                label: CompositedTransformTarget(
++                                  link: _layerLink,
++                                  child: CustomTextField(
++                                    width: 200,
++                                    readOnly: true,
++                                    onTap: () {
++                                      setState(() {
++                                        _overlayEntry?.remove();
++                                        _overlayEntry = null;
++                                        if (_overlayEntry == null) {
++                                          _showOverlaySender(context);
++                                        }
++                                      });
++                                    },
++                                    labelText: 'المرسل',
++                                    hintText: "ادخل اسم المرسل",
++                                    prefixIcon: Icons.person_outline,
++                                    controller: _senderNameController,
++                                  ),
++                                ),
++                              ),
++                              DataColumn(
++                                label: CompositedTransformTarget(
++                                  link: _layerLinkRecipient,
++                                  child: CustomTextField(
++                                    readOnly: true,
++                                    onTap: () {
++                                      setState(() {
++                                        _overlayEntry?.remove();
++                                        _overlayEntry = null;
++                                        if (_overlayEntry == null) {
++                                          _showOverlayRecipient(context);
++                                        }
++                                      });
++                                    },
++                                    width: 200,
++                                    labelText: 'المستقبل',
++                                    hintText: "ادخل اسم المستقبل",
++                                    prefixIcon: Icons.person_outline,
++                                    controller: _recipientNameController,
++                                  ),
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomDropdown(
++                                  width: 200,
++                                  labelText: 'الحالة',
++                                  prefixIcon: Icons.info_outline,
++                                  value: selectedStatus,
++                                  items: statusOptions,
++                                  onClearPressed: () {
++                                    setState(() {
++                                      selectedStatus = null;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                  onChanged: (String? newValue) {
++                                    setState(() {
++                                      selectedStatus = newValue!;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomTextField(
++                                  width: 200,
++                                  labelText: 'الإرسالية',
++                                  hintText: "ادخل رقم الإرسالية",
++                                  prefixIcon: Icons.local_shipping_outlined,
++                                  controller: _trackingNumberController,
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomDropdown(
++                                  width: 200,
++                                  labelText: 'طريقة الدفع',
++                                  prefixIcon: Icons.payment,
++                                  value: selectedPaymentMethod,
++                                  items: paymentMethods,
++                                  onClearPressed: () {
++                                    setState(() {
++                                      selectedPaymentMethod = null;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                  onChanged: (String? newValue) {
++                                    setState(() {
++                                      selectedPaymentMethod = newValue!;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                ),
++                              ),
++                              DataColumn(
++                                label: CustomDropdown(
++                                  width: 200,
++                                  labelText: 'طريقة التحصيل',
++                                  prefixIcon: Icons.account_balance_wallet,
++                                  value: selectedCollectionMethod,
++                                  items: collectionMethods,
++                                  onClearPressed: () {
++                                    setState(() {
++                                      selectedCollectionMethod = null;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                  onChanged: (String? newValue) {
++                                    setState(() {
++                                      selectedCollectionMethod = newValue!;
++                                      _applyFiltersLocally();
++                                    });
++                                  },
++                                ),
++                              ),
++                              // Date fields
++                              ...{
++                                'تاريخ الحجز': _bookingDateController,
++                                'تاريخ التوصيل': _deliveryDateController,
++                                'تاريخ التوصيل المتوقع':
+                                     _expectedDeliveryDateController,
+-                                    'تاريخ اخر حالة': _lastStatusDateController,
+-                                    'تاريخ التأجيل': _postponementDateController,
+-                                  }
+-                                      .entries
+-                                      .map((entry) => DataColumn(
+-                                    label: CustomTextField(
+-                                      width: 220,
+-                                      labelText: entry.key,
+-                                      hintText: "ادخل ${entry.key}",
+-                                      prefixIcon: Icons.calendar_today,
+-                                      controller: entry.value,
+-                                      onTap: () =>
+-                                          _selectDate(context, entry.value),
+-                                      readOnly: true,
+-                                    ),
+-                                  ))
+-                                      .toList(),
+-                                  DataColumn(
+-                                    label: CustomTextField(
+-                                      labelText: 'ملاحظات',
+-                                      hintText: "ادخل ملاحظات",
+-                                      prefixIcon: Icons.note,
+-                                      controller: _notesController,
+-                                    ),
+-                                  ),
+-                                ],
+-
+-                                rows: [
+-
+-                                ], // Empty rows for header only
+-                              ),
+-
+-                            ),
+-                            Expanded(
+-                              child: CustomScrollbar(
+-                                verticalScrollController: _verticalScrollController,
+-                                horizontalScrollController:
+-                                    _horizontalScrollController,
+-                                child: DataTable(
+-                                  showCheckboxColumn: false,
+-                                  headingRowHeight: 0, // Hide the header in scrollable content
+-                                  horizontalMargin: 15,
+-
+-
+-                                  //dividerThickness: .5,
+-                                  columns: tableColumns,
+-                                  rows: filteredOrders.reversed.map<DataRow>((order) {
+-                                    return DataRow(
+-
+-                                      cells: [
+-                                        DataCell(
+-                                          Checkbox(
+-                                    value:
++                                'تاريخ اخر حالة': _lastStatusDateController,
++                                'تاريخ التأجيل': _postponementDateController,
++                              }
++                                  .entries
++                                  .map((entry) => DataColumn(
++                                        label: CustomTextField(
++                                          width: 220,
++                                          labelText: entry.key,
++                                          hintText: "ادخل ${entry.key}",
++                                          prefixIcon: Icons.calendar_today,
++                                          controller: entry.value,
++                                          onTap: () =>
++                                              _selectDate(context, entry.value),
++                                          readOnly: true,
++                                        ),
++                                      ))
++                                  .toList(),
++                              DataColumn(
++                                label: CustomTextField(
++                                  labelText: 'ملاحظات',
++                                  hintText: "ادخل ملاحظات",
++                                  prefixIcon: Icons.note,
++                                  controller: _notesController,
++                                ),
++                              ),
++                            ],
++                            rows: filteredOrders.map<DataRow>((order) {
++                              return DataRow(
++                                selected:
+                                     selectedOrderIds.contains(order.orderId),
+ 
+-                                    onChanged: (checked) {
+-                                    if (checked!) {
++                                onSelectChanged: (checked) {
++                                  if (checked!) {
+                                     setState(() {
+-                                    selectedOrderIds.add(order.orderId);
++                                      selectedOrderIds.add(order.orderId);
+ 
+                                     });
+-                                    } else {
++                                  } else {
+                                     setState(() {
+-                                    selectedOrderIds.remove(order.orderId);
++                                      selectedOrderIds.remove(order.orderId);
+                                     });
+-                                    }
++                                  }
+ 
+-                                    },
+-                                          ) ),
+-                                        DataCell(
+-                                            onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Customtext(title: order.orderId)),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Text( order.weight.toString())),
+-                                        DataCell
+-                                          (
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Center(
+-                                              child: SizedBox(
+-                                                width: 110,
+-                                                child: CounterTextFormField(
+-                                                  //label: 'Quantity',
+-                                                  initialValue: order.deliveryCost,
+-                                                  min: 0,
+-                                                  max: 100,
+-                                                  step: 1,
+-                                                  isInteger: false,
+-                                                  onChanged: (value) {
+-                                                    appProvider.updateOrderPrice(order.orderId, double.parse(order.deliveryCost.toString()), double.parse(value)
+-                                                      ,order.userId);
+-                                                    print('New value: $value');
+-                                                  },
+-                                                ),
+-                                              ),
+-                                            )
+-                                        ),
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(
+-                                            title: "${order.codAmount} JOD")),
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(title: order.username ?? '')),
+-                                        DataCell(
+-                                            Customtext(title: order.phoneNumber)),
+-                                        DataCell(
+-                                            Customtext(title: order.username ?? '')),
+-                                        DataCell(
+-                                            Customtext(title:"${order.recipientName}\n${order.city}")  ),
+-                                        DataCell(
+-                              
+-                                            onTap: () {
+-                                          return showFutureDetailsBottomSheet(
+-                                              shipment: order,
+-                                              appProvider: appProvider);
+-                                        }, Container(
+-                                          margin: const EdgeInsets.symmetric(
+-                                              horizontal: 8, vertical: 4),
+-                                          decoration: BoxDecoration(
+-                                            color:getStatusColor(order.status),
+-                                            borderRadius: BorderRadius.circular(8),
+-                                          ),
+-                                          child: Customtext(
+-                                            color: Colors.white,
+-                                              title: order.status),
+-                                        ),
+-                                          showEditIcon: true
+-                                        ),
+-                              
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(title: order.trackingNumber)),
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(title: order.paymentMethod)),
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(
+-                              
+-                                            title: order.collectionMethod)),
+-                                        DataCell(
+-                                            onTap: () {
+-                                              setState(() {
+-                                                selectedOrder = order;
+-                                              });
+-                                              _scaffoldKey.currentState!.openEndDrawer();
+-                                            },
+-                                            Customtext(
+-                                            title: order.createdAt.toString())),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        },
+-                                            Customtext(
+-                                            title: order.deliveryDate?.toString() ??
+-                                                '')),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Customtext(
+-                                            title: order.expectedDeliveryDate
+-                                                    ?.toString() ??
+-                                                '')),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Customtext(
+-                                            title: order.lastUpdated.toString())),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Customtext(
+-                                            title:
+-                                                order.postponementDate?.toString() ??
+-                                                    '')),
+-                                        DataCell(  onTap: () {
+-                                          setState(() {
+-                                            selectedOrder = order;
+-                                          });
+-                                          _scaffoldKey.currentState!.openEndDrawer();
+-                                        }, Customtext(title: order.notes)),
+-                                      ],
+-                                    );
+-                                  }).toList(),
+-                                ),
+-                              ),
+-                            ),
+-                          ],
++                                },
++                                cells: [
++                                  DataCell(
++                                      onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(title: order.orderId)),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(
++                                      title: order.weight.toString())),
++                                  DataCell
++                                    (
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Center(
++                                        child: SizedBox(
++                                          width: 110,
++                                          child: CounterTextFormField(
++                                            //label: 'Quantity',
++                                            initialValue: order.deliveryCost,
++                                            min: 0,
++                                            max: 100,
++                                            step: 1,
++                                            isInteger: false,
++                                            onChanged: (value) {
++                                              appProvider.updateOrderPrice(order.orderId, double.parse(order.deliveryCost.toString()), double.parse(value)
++                                                ,order.userId);
++                                              print('New value: $value');
++                                            },
++                                          ),
++                                        ),
++                                      )
++                                  ),
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(
++                                      title: "${order.codAmount} JOD")),
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(title: order.username ?? '')),
++                                  DataCell(
++                                      Customtext(title: order.phoneNumber)),
++                                  DataCell(
++                                      Customtext(title: order.username ?? '')),
++                                  DataCell(
++                                      Customtext(title:"${order.recipientName}\n${order.city}")  ),
++                                  DataCell(
++
++                                      onTap: () {
++                                    return showFutureDetailsBottomSheet(
++                                        shipment: order,
++                                        appProvider: appProvider);
++                                  }, Customtext(title: order.status),
++                                    showEditIcon: true
++                                  ),
++
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(title: order.trackingNumber)),
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(title: order.paymentMethod)),
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(
++
++                                      title: order.collectionMethod)),
++                                  DataCell(
++                                      onTap: () {
++                                        setState(() {
++                                          selectedOrder = order;
++                                        });
++                                        _scaffoldKey.currentState!.openEndDrawer();
++                                      },
++                                      Customtext(
++                                      title: order.createdAt.toString())),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  },
++                                      Customtext(
++                                      title: order.deliveryDate?.toString() ??
++                                          '')),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(
++                                      title: order.expectedDeliveryDate
++                                              ?.toString() ??
++                                          '')),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(
++                                      title: order.lastUpdated.toString())),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(
++                                      title:
++                                          order.postponementDate?.toString() ??
++                                              '')),
++                                  DataCell(  onTap: () {
++                                    setState(() {
++                                      selectedOrder = order;
++                                    });
++                                    _scaffoldKey.currentState!.openEndDrawer();
++                                  }, Customtext(title: order.notes)),
++                                ],
++                              );
++                            }).toList(),
++                          ),
+                         ),
+                       ),
+                     ),
+@@ -1322,9 +1256,7 @@
+   void showFutureDetailsBottomSheet(
+       {Shipment? shipment, required AppProvider appProvider}) {
+     var status = shipment?.status;
+-    TextEditingController noteController = TextEditingController();
+-    Driver? driver=appProvider.drivers.where((e) => e.userid==shipment?.driverId).firstOrNull;
+-    String? note;
++    Driver? driver;
+     showModalBottomSheet(
+       context: context,
+       backgroundColor: background,
+@@ -1362,31 +1294,15 @@
+                       label: 'الحاله',
+                       hint: 'اختر حالة',
+                       value: status,
+-                      items: statusOptions.keys
++                      items: statusOptions
+                           .map((e) => DropdownMenuItem<String>(
+                                 value: e,
+-                                child:       Row(
+-                                  children: [
+-                                    Container(
+-                                      margin: const EdgeInsets.only(left: 2),
+-                                      decoration: BoxDecoration(
+-                                        color: getStatusColor(e),
+-                                        borderRadius: BorderRadius.circular(20),
+-                                      ),
+-                                      width: 16,
+-                                      height: 16,
+-                                    ),
+-                                    Text(e),
+-
+-                                  ],
+-                                ),
++                                child: Text(e),
+                               ))
+                           .toList(),
+                       onChanged: (value) {
+                         setState(() {
+                           status = value;
+-
+-
+                         });
+                       },
+                     ),
+@@ -1417,22 +1333,6 @@
+                                 });
+                               },
+                       ),
+-                    const SizedBox(height: 16),
+-                    if ([
+-                      "ملغاة",
+-                    ].contains(status))
+-                      CustomTextField(
+-                        onChanged: (value) {
+-                          setState(() {
+-                            note = value;
+-                          });
+-
+-                        },
+-                        labelText: 'ملاحظات',
+-                        hintText: "ادخل ملاحظات",
+-                        prefixIcon: Icons.note,
+-                        controller: noteController,
+-                      ),
+                     const SizedBox(height: 24),
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+@@ -1461,11 +1361,11 @@
+                               // todo handel null
+                               if (shipment != null) {
+                                 appProvider.updateOrderStatus(
+-                                    shipment.orderId, status!, driver, note);
++                                    shipment.orderId, status!, driver);
+                               } else {
+                                 selectedOrderIds.forEach((element) {
+                                   appProvider.updateOrderStatus(
+-                                      element, status!, driver, note);
++                                      element, status!, driver);
+                                 });
+                               }
+                               Navigator.pop(context);
