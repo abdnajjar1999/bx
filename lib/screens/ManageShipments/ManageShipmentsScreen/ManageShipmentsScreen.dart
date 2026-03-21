@@ -990,6 +990,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
       'width': 200.0
     },
     {'id': 'notes', 'label': 'ملاحظات', 'visible': true, 'width': 200.0},
+    {'id': 'actions', 'label': 'الإجراءات', 'visible': true, 'width': 70.0},
   ];
 
   get totalWidth {
@@ -2105,8 +2106,12 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                         CustomButton(
                                           text: 'تغير الحاله',
                                           onPressed: () async {
-                                            return showFutureDetailsBottomSheet(
-                                                appProvider: appProvider);
+                                            return showChangeStatusBottomSheet(
+                                              context: context,
+                                                appProvider: appProvider,
+                                                selectedOrderIds: selectedOrderIds.toList()
+                                                )
+                                                ;
                                           },
                                           color: Colors.green,
                                           textColor: Colors.white,
@@ -2420,499 +2425,6 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
     });
   }
 
-  void showFutureDetailsBottomSheet(
-      {Shipment? shipment, required AppProvider appProvider}) {
-    var status = shipment?.status;
-    TextEditingController noteController = TextEditingController();
-    Shelf? shelf =
-        appProvider.shelves.where((e) => e.id == shipment?.shelfId).firstOrNull;
-    Driver? driver = appProvider.drivers
-        .where((e) => e.userid == shipment?.driverId)
-        .firstOrNull;
-    String? shelfId = shipment?.shelfId;
-    String? note;
-    bool receivedMoneyFromCustomer = false;
-    bool getMoneyFromUserPalance = false;
-    OrderPossession orderPossession =
-        shipment?.orderPossession ?? OrderPossession.branch;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: background,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            ),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      "تغيير الحالة ل ${shipment != null ? "1" : selectedOrderIds.length} طرد ",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        //color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    buildDropdownField(
-                      label: 'الحاله',
-                      hint: 'اختر حالة',
-                      value: status,
-                      items: statusOptions.keys
-                          .map((e) => DropdownMenuItem<String>(
-                                value: e,
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      margin: const EdgeInsets.only(left: 2),
-                                      decoration: BoxDecoration(
-                                        color: getStatusColor(e),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      width: 16,
-                                      height: 16,
-                                    ),
-                                    Text(e),
-                                  ],
-                                ),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        if (["في المركبة", "تم إرجاعها"].contains(value)) {
-                          orderPossession = OrderPossession.driverShipping;
-                        }
-                        setState(() {
-                          status = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    if ([
-                      "بانتظار تعيين السائق",
-                      "بانتظار موافقة السائق",
-                      "رفضها السائق",
-                      "بانتظار التحميل",
-                      "في المركبة",
-                      "تم توصيلها",
-                      "تم توصيلها بشكل جزئي",
-                      "تم إرجاعها"
-                    ].contains(status))
-                      buildDropdownField(
-                        isRequired: true,
-                        items: _getVisibleDrivers(appProvider)
-                            .map((driver) => DropdownMenuItem<Driver>(
-                                  value: driver,
-                                  child: Text(driver.username ?? ""),
-                                ))
-                            .toList(),
-                        label:
-                            'السائق${(status == "تم توصيلها" || status == "في المركبة") ? " *" : ""}',
-                        hint: 'اختر سائق',
-                        value: driver,
-                        onChanged: _isLoading
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  driver = value;
-                                });
-                              },
-                      ),
-                    const SizedBox(height: 16),
-                    if (status == "على الرفوف")
-//make a dropdown to select shelf
-                      buildDropdownField(
-                        isRequired: true,
-                        items: appProvider.shelves
-                            .map((shelf) => DropdownMenuItem<Shelf>(
-                                  value: shelf,
-                                  child: Text(shelf.name ?? ""),
-                                ))
-                            .toList(),
-                        label: status == "على الرفوف" ? 'الرف *' : 'الرف',
-                        hint: 'اختر رف',
-                        value: shelf,
-                        onChanged: _isLoading
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  shelf = value;
-                                  shelfId = value?.id;
-                                });
-                              },
-                      ),
-                    if (status == "تم إرجاعها")
-                      Column(
-                        children: [
-                          // قبل الوصول
-                          RadioListTile<String>(
-                            title: const Text('فشل بالتوصيل'),
-                            value: 'فشل بالتوصيل',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('حادث'),
-                            value: 'حادث',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('رفض قبل الوصول'),
-                            value: 'رفض قبل الوصول',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('الغاء قبل الوصول'),
-                            value: 'الغاء قبل الوصول',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('عدم رد'),
-                            value: 'عدم رد',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('تجاوز عدد مرات المحاولات'),
-                            value: 'تجاوز عدد مرات المحاولات',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('الغاء الطلب (قبل الوصول)'),
-                            value: 'الغاء الطلب (قبل الوصول)',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = false;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-
-                          // بعد الوصول
-                          Text(
-                            'بعد الوصول',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          Divider(),
-                          RadioListTile<String>(
-                            title: const Text('الغاء الطلب (بعد الوصول)'),
-                            value: 'الغاء الطلب (بعد الوصول)',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = true;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-
-                          RadioListTile<String>(
-                            title: const Text('مرجع مؤجل'),
-                            value: 'مرجع مؤجل',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = true;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-
-                          RadioListTile<String>(
-                            title: const Text('لا رد بعد الوصول'),
-                            value: 'لا رد بعد الوصول',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = true;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('رفض بعد الوصول'),
-                            value: 'رفض بعد الوصول',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = true;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                          RadioListTile<String>(
-                            title: const Text('عدم حضور'),
-                            value: 'عدم حضور',
-                            groupValue: note,
-                            onChanged: (value) {
-                              setState(() {
-                                getMoneyFromUserPalance = true;
-                                status = 'تم إرجاعها';
-                                note = value;
-                                noteController.text = value ?? '';
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    if (["ملغاة", "تم إرجاعها"].contains(status))
-                      Column(
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: CustomTextField(
-                              readOnly: status == "تم إرجاعها",
-                              onChanged: (value) {
-                                setState(() {
-                                  note = value;
-                                });
-                              },
-                              labelText: 'ملاحظات',
-                              hintText: "ادخل ملاحظات",
-                              prefixIcon: Icons.note,
-                              controller: noteController,
-                            ),
-                          ),
-                          if (status == "تم إرجاعها")
-                            Column(
-                              children: [
-                                CheckboxListTile(
-                                  title: Text('المستلم دفع الاجور'),
-                                  value: receivedMoneyFromCustomer,
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      receivedMoneyFromCustomer =
-                                          value ?? false;
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    const SizedBox(height: 24),
-                    if (status == "تم إرجاعها" || status == "في المركبة")
-                      buildDropdownField(
-                        items: OrderPossession.values
-                            .map((e) => DropdownMenuItem<OrderPossession>(
-                                  value: e,
-                                  child: Text(e.nameAr),
-                                ))
-                            .toList(),
-                        label: 'يوجد مع',
-                        hint: 'اختر من يوجد معه',
-                        value: orderPossession,
-                        onChanged: (value) {
-                          setState(() {
-                            orderPossession = value;
-                          });
-                        },
-                      ),
-                    SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[800],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'إلغاء',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (status == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('الرجاء اختيار الحالة'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              if ((status == "بانتظار موافقة السائق" ||
-                                      status == "رفضها السائق" ||
-                                      status == "بانتظار التحميل" ||
-                                      status == "في المركبة" ||
-                                      status == "تم توصيلها" ||
-                                      status == "تم توصيلها بشكل جزئي" ||
-                                      status == "تم إرجاعها") &&
-                                  driver == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'يجب اختيار السائق عند تغيير الحالة'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              if (status == "على الرفوف" && shelfId == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                        'يجب اختيار الرف عند تغيير الحالة إلى "على الرفوف"'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              if (shipment != null) {
-                                appProvider.updateOrderStatus(
-                                  shipment.orderId,
-                                  status!,
-                                  driver,
-                                  note,
-                                  getMoneyFromUserPalance: (status == "ملغاة" ||
-                                          status == "تم إرجاعها")
-                                      ? receivedMoneyFromCustomer
-                                          ? false
-                                          : getMoneyFromUserPalance
-                                      : null,
-                                  receivedMoneyFromCustomer:
-                                      (status == "ملغاة" ||
-                                              status == "تم إرجاعها")
-                                          ? receivedMoneyFromCustomer
-                                          : null,
-                                  returnedAfterDelivery:
-                                      getMoneyFromUserPalance,
-                                  shelf: shelf,
-                                  orderPossession: orderPossession,
-                                );
-                              } else {
-                                selectedOrderIds.forEach((element) {
-                                  appProvider.updateOrderStatus(
-                                      element, status!, driver, note,
-                                      receivedMoneyFromCustomer:
-                                          (status == "ملغاة" ||
-                                                  status == "تم إرجاعها")
-                                              ? receivedMoneyFromCustomer
-                                              : null,
-                                      getMoneyFromUserPalance:
-                                          (status == "ملغاة" ||
-                                                  status == "تم إرجاعها")
-                                              ? receivedMoneyFromCustomer
-                                                  ? false
-                                                  : getMoneyFromUserPalance
-                                              : null,
-                                      returnedAfterDelivery:
-                                          getMoneyFromUserPalance,
-                                      shelf: shelf,
-                                      orderPossession: orderPossession);
-                                });
-                              }
-                              Navigator.pop(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow[700],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'تم',
-                              style: TextStyle(color: Colors.black),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        });
-      },
-    );
-  }
 
   void _filterShipmentsByTab(int tabIndex) {
     setState(() {
@@ -3508,7 +3020,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                   child: ShipmentDetails(shipment: order),
                 );
               },
-              showFutureDetailsBottomSheet,
+              showChangeStatusBottomSheet,
               appProvider,
             ),
           ),
@@ -3824,7 +3336,8 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          showFutureDetailsBottomSheet(
+                          showChangeStatusBottomSheet(
+context: context,
                             shipment: order,
                             appProvider: appProvider,
                           );
@@ -3958,7 +3471,7 @@ class _ShipmentDataTableSource extends DataTableSource {
   final Function(String, bool) onCheckboxChanged;
   final Function(Shipment) onRowSelected;
   final Function(Shipment) onRowLongPressed;
-  final Function({Shipment? shipment, required AppProvider appProvider})
+  final Function({required BuildContext context,Shipment? shipment, required AppProvider appProvider})
       showFutureDetailsBottomSheet;
   final AppProvider appProvider;
   final List<Map<String, dynamic>> columnConfigs;
@@ -4105,6 +3618,69 @@ class _ShipmentDataTableSource extends DataTableSource {
             case 'notes':
               cellWidget = Customtext(title: order.notes);
               break;
+            case 'actions':
+             
+                cellWidget = PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.black87),
+                  tooltip: 'الإجراءات',
+                  onSelected: (value) {
+                    if (value == 'changeStatus') {
+                      showFutureDetailsBottomSheet(
+                        context: context,
+                        shipment: order,
+                        appProvider: appProvider,
+                      );
+                    } else if (value == 'assignDriver') {
+                      showDriverAssignmentDialog(context, appProvider.drivers)
+                          .then((driver) {
+                        if (driver != null) {
+                          appProvider.assignDriver(order.orderId, driver);
+                        }
+                      });
+
+                    } else if (value == 'واصل bx') {
+                     appProvider.updateIsCompanyDeliveryFeePaid(order.orderId, true);
+                   
+                      
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<String>(
+                      value: 'changeStatus',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('تغير الحاله'),
+                        ],
+                      ),
+                    ),
+                    if (order.status == 'الطلبات الجديدة')
+                    const PopupMenuItem<String>(
+                      value: 'assignDriver',
+                      child: Row(
+                        children: [
+                          Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('تعيين سائق'),
+                        ],
+                      ),
+                    ),
+                    if (order.paymentMethod == 'مدفوعة مسبقا' && !order.isCompanyDeliveryFeePaid)
+                    const PopupMenuItem<String>(
+                      value: 'واصل bx',
+                      child: Row(
+                        children: [
+                          Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('واصل bx'),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+             
+              break;
             default:
               cellWidget = Text('');
           }
@@ -4113,6 +3689,7 @@ class _ShipmentDataTableSource extends DataTableSource {
             SizedBox(width: width, child: cellWidget),
             onTap: id == 'status'
                 ? () => showFutureDetailsBottomSheet(
+                  context: context,
                     shipment: order, appProvider: appProvider)
                 : null,
           );

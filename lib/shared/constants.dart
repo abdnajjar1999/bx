@@ -36,7 +36,7 @@ Color getStatusColor(String status) {
   return statusOptions[status] ?? Colors.grey; // Returns grey as fallback color
 }
 
-final List<String> paymentMethods = ['تبديل', 'COD', 'مدفوعة مسبقا', 'إحضار'];
+final List<String> paymentMethods = ['COD', 'مدفوعة مسبقا', 'إحضار', 'تبديل'];
 final List<String> collectionMethods = [
   'كاش',
   'تحويل بنكي',
@@ -328,7 +328,7 @@ const List<String> drawerTitles = [
   'اداره المناطق', // Index 15
   'الطلبات المرتجعة المسلمة', // Index 16
   'الطلبات المرتجعة في الفرع', // Index 17
-  'الحسابات البنكية', // Index 18
+  'الحسابات', // Index 18
   'سندات الاستلام', // Index 19
   'إدارة المخزون', // Index 20
   'حاسبة الاسعار السائق', // Index 21

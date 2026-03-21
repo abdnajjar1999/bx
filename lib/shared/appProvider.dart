@@ -472,8 +472,8 @@ class AppProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> addExpense(Map<String, dynamic> data) async {
-    await firebaseHelper.addExpense(data);
+  Future<String> addExpense(Map<String, dynamic> data) async {
+    return await firebaseHelper.addExpense(data);
   }
 
   void listenToBankAccounts() {
@@ -625,15 +625,12 @@ class AppProvider extends ChangeNotifier {
   }
 
   double getAccountBalance(String accountName) {
-    List<Transfer> transfers = this
-        .transfers
-        .where((transfer) => transfer.account == accountName)
-        .toList();
     double balance = 0;
     for (Transfer transfer in transfers) {
-      if (transfer.type == 'إيداع') {
+      if (transfer.toAccountDisplay == accountName) {
         balance += transfer.amount;
-      } else {
+      }
+      if (transfer.fromAccountDisplay == accountName) {
         balance -= transfer.amount;
       }
     }
@@ -908,5 +905,10 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> reciveReturnOrder(String orderId) async {
     return await firebaseHelper.reciveReturnOrder(orderId);
+  }
+
+  Future<void> updateIsCompanyDeliveryFeePaid(String orderId, bool bool) async {
+   return await firebaseHelper.updateIsCompanyDeliveryFeePaid(orderId, bool);
+    
   }
 }

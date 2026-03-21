@@ -127,7 +127,7 @@ class _MyAppState extends State<MyApp> {
           ),
           appBarTheme: const AppBarTheme(
             backgroundColor: primary,
-            foregroundColor: Colors.black,
+            foregroundColor: Colors.white,
             elevation: 0,
           ),
           cardTheme: CardThemeData(
@@ -139,7 +139,7 @@ class _MyAppState extends State<MyApp> {
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
-              foregroundColor: Colors.black,
+              foregroundColor: Colors.white,
               elevation: 2,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(

@@ -179,9 +179,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               child: const Text('إلغاء'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 if (formKey.currentState?.validate() ?? false) {
-                  appProvider.addExpense({
+                  String expenseId = await appProvider.addExpense({
                     'type': selectedType,
                     'beneficiary':
                         selectedDriver?.username ?? selectedBeneficiary ?? '',
@@ -192,9 +192,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   appProvider.addTransfer({
                     'type': "سحب",
                     'account': selectedAccount,
+                    'otherAccount': selectedType ?? 'مصروف غير معروف',
+                    'otherAccountCategory': 'المصروفات',
                     'amount': double.parse(amountController.text),
                     'notes': "مصروف $selectedType",
                     'date': DateTime.now().toIso8601String(),
+                    'relatedTo': expenseId,
                   });
                   Navigator.pop(context);
                 }
@@ -540,6 +543,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   horizontalScrollController: _horizontalScrollController,
                   child: DataTable(
                     columns: const [
+                      DataColumn(label: Text('ID')),
                       DataColumn(label: Text('نوع المصروف')),
                       DataColumn(label: Text('اسم المستخدم')),
                       DataColumn(label: Text('المستفيد')),
@@ -557,6 +561,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     rows: appProvider.expenses.map((expense) {
                       return DataRow(
                         cells: [
+                          DataCell(Text(expense.id)),
                           DataCell(Text(expense.type)),
                           DataCell(Text(expense.userName)),
                           DataCell(Text(expense.beneficiary)),

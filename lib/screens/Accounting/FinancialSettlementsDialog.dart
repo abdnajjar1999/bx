@@ -1,6 +1,7 @@
 import '../../main.dart';
 import '../../models/Driver.dart';
 import '../../models/DriverDeliveryData.dart';
+import '../../models/Shipment.dart';
 import '../../shared/PrintHelper.dart';
 import '../../shared/firebaseHelper.dart';
 import '../../shared/appProvider.dart';
@@ -371,24 +372,66 @@ class _FinancialSettlementsDialogState
                         updatedDriverData.copyWith(pdfUrl: pdfUrl);
 
                     // Save the receipt invoice
-                    FirebaseHelper()
+                    String receiptId = await FirebaseHelper()
                         .saveDriverReceiptInvoice(updatedDriverData);
                     if (selectedPaymentMethod != null) {
-                      FirebaseHelper().addTransfer({
-                        'type': "إيداع",
-                        'account': selectedPaymentMethod,
-                        'amount': receivedAmount,
-                        'notes':
-                            "سند قبض من السائق ${widget.driverData.driverName}",
-                        'date': DateTime.now().toIso8601String(),
-                      });
+                      Map<String, List<Shipment>> groupedShipments = {};
+                      for (var shipment in widget.driverData.shipments) {
+                        String uname = shipment.username ?? 'مجهول';
+                        if (!groupedShipments.containsKey(uname)) {
+                          groupedShipments[uname] = [];
+                        }
+                        groupedShipments[uname]!.add(shipment);
+                      }
+
+                      for (var entry in groupedShipments.entries) {
+                        String username = entry.key;
+                        List<Shipment> userShipments = entry.value;
+
+                        double totalPayable = 0.0;
+                        double totalCollection = 0.0;
+                        for (var shipment in userShipments) {
+                          totalPayable += shipment.payableToCustomer;
+                          totalCollection += shipment.driverCollection;
+                        }
+
+                        double remaining = totalCollection - totalPayable;
+
+                        if (totalPayable != 0) {
+                          Provider.of<AppProvider>(context, listen: false).addTransfer({
+                            'type': "إيداع",
+                            'account': selectedPaymentMethod,
+                            'otherAccount': username,
+                            'otherAccountCategory': 'جاري العملاء',
+                            'amount': totalPayable,
+                            'notes':
+                                "تحصيل من السائق ${widget.driverData.driverName} - للزبون $username",
+                            'date': DateTime.now().toIso8601String(),
+                            'relatedTo': receiptId,
+                          });
+                        }
+
+                        if (remaining != 0) {
+                          Provider.of<AppProvider>(context, listen: false).addTransfer({
+                            'type': "إيداع",
+                            'account': selectedPaymentMethod,
+                            'otherAccount': 'المبيعات',
+                            'otherAccountCategory': 'ايرادات',
+                            'amount': remaining,
+                            'notes':
+                                "إيرادات توصيل من السائق ${widget.driverData.driverName} - طلبات $username",
+                            'date': DateTime.now().toIso8601String(),
+                            'relatedTo': receiptId,
+                          });
+                        }
+                      }
                     }
 
                     // Only add expense if there is an expense amount entered
                     if (!amountsMatch) {
                       FirebaseHelper().addExpense({
                         'type': selectedExpenseType,
-                        'beneficiary': widget.driverData.driverName ?? '',
+                        'beneficiary': widget.driverData.driverName,
                         'amount': double.parse(expensesController.text),
                         'notes': notesController.text,
                         'branch': KcompanyName,

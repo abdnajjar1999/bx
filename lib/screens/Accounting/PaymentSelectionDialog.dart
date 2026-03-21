@@ -98,14 +98,17 @@ class _PaymentSelectionDialogState extends State<PaymentSelectionDialog> {
       widget.userAccount.paymentDate = DateTime.now();
       widget.userAccount.pdfUrl = pdfUrl;
 
-      await FirebaseHelper().payOrdersToCustomer(widget.userAccount);
-      if (selectedPaymentMethod != null) {
+      String invoiceId = await FirebaseHelper().payOrdersToCustomer(widget.userAccount);
+      if (selectedPaymentMethod != null && widget.userAccount.getAmountToPay() > 0) {
         appProvider.addTransfer({
           'type': "سحب",
           'account': selectedPaymentMethod,
+          'otherAccount': widget.userAccount.client,
+          'otherAccountCategory': 'جاري العملاء',
           'amount': widget.userAccount.getAmountToPay(),
           'notes': "سند دفع للعميل ${widget.userAccount.client}",
           'date': DateTime.now().toIso8601String(),
+          'relatedTo': invoiceId,
         });
       }
 

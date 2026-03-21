@@ -758,18 +758,19 @@ class FirebaseHelper {
     );
   }
 
-  // Save the driver receipt invoice to Firestore
-  Future<void> saveDriverReceiptInvoice(DriverDeliveryData driverData) async {
+  Future<String> saveDriverReceiptInvoice(DriverDeliveryData driverData) async {
     var ref = _fireStore.collection('receiptedInvoices').doc();
+    driverData.id = ref.id;
     await ref.set(driverData.toMap());
+    return ref.id;
   }
 
-  Future payOrdersToCustomer(UserAccount userAccount) async {
+  Future<String> payOrdersToCustomer(UserAccount userAccount) async {
     List<dynamic> items = [];
     if (userAccount.haveInventoryItems == true) {
       var doc = await inventory.doc(userAccount.id).get();
 
-      if (!doc.exists) return;
+      if (!doc.exists) return "";
 
       var data = doc.data() as Map<String, dynamic>;
       items = List.from(data['items'] ?? []);
@@ -812,6 +813,7 @@ class FirebaseHelper {
       recipientId: userAccount.id,
       orderId: null,
     );
+    return ref.id;
   }
 
   static Stream<List<UserAccount>> exportedInvoicesStream() {
@@ -838,13 +840,14 @@ class FirebaseHelper {
   }
 
   // Expense Methods
-  Future<void> addExpense(Map<String, dynamic> data) async {
-    await expenses.add({
+  Future<String> addExpense(Map<String, dynamic> data) async {
+    var docRef = await expenses.add({
       ...data,
       'creationDate': FieldValue.serverTimestamp(),
       'modificationDate': FieldValue.serverTimestamp(),
       'userName': user?.displayName ?? 'Unknown',
     });
+    return docRef.id;
   }
 
   Future<void> updateExpense(String id, Map<String, dynamic> data) async {
@@ -1612,5 +1615,12 @@ class FirebaseHelper {
     } catch (e) {
       print('FCM Debug Error in dual notification: $e');
     }
+  }
+
+  updateIsCompanyDeliveryFeePaid(String orderId, bool bool) {
+    _fireStore.collection('orders').doc(orderId).update({'isCompanyDeliveryFeePaid': bool,
+    if(bool)
+    'isDeliveryFeeOnRecipient':false,
+    });
   }
 }

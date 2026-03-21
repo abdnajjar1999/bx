@@ -181,6 +181,11 @@ class Shipment {
   int? otp;
   final bool isAddressed;
 
+  // New fields for Collection Logic
+  final bool isDeliveryFeeOnRecipient; // المستلم سيدفع سعر التوصيل (true by default usually)
+  final bool isCompanyDeliveryFeePaid; // واصل الشركة (true if paid to company, false otherwise)
+  final bool isPayToRecipient; // الدفع للمستلم (used in Exchange/Pick-up)
+
   Shipment({
     this.customerlocation,
     this.userphone,
@@ -229,6 +234,9 @@ class Shipment {
     this.isSentToFaotara = false,
     this.isAddressed = false,
     this.senderName,
+    this.isDeliveryFeeOnRecipient = true,
+    this.isCompanyDeliveryFeePaid = false,
+    this.isPayToRecipient = false,
   });
 
   factory Shipment.fromMap(Map<String, dynamic> map) {
@@ -313,6 +321,9 @@ class Shipment {
       otp: map['otp'],
       isSentToFaotara: map['isSentToFaotara'] ?? false,
       isAddressed: map['isAddressed'] ?? false,
+      isDeliveryFeeOnRecipient: map['isDeliveryFeeOnRecipient'] ?? true,
+      isCompanyDeliveryFeePaid: map['isCompanyDeliveryFeePaid'] ?? false,
+      isPayToRecipient: map['isPayToRecipient'] ?? false,
     );
   }
 
@@ -365,6 +376,9 @@ class Shipment {
       'reassignedToDriver': reassignedToDriver,
       'isSentToFaotara': isSentToFaotara,
       'isAddressed': isAddressed,
+      'isDeliveryFeeOnRecipient': isDeliveryFeeOnRecipient,
+      'isCompanyDeliveryFeePaid': isCompanyDeliveryFeePaid,
+      'isPayToRecipient': isPayToRecipient,
     };
   }
 
@@ -418,6 +432,9 @@ class Shipment {
     int? otp,
     bool? isSentToFaotara,
     bool? isAddressed,
+    bool? isDeliveryFeeOnRecipient,
+    bool? isCompanyDeliveryFeePaid,
+    bool? isPayToRecipient,
   }) {
     return Shipment(
       shelf: shelf ?? this.shelf,
@@ -470,8 +487,71 @@ class Shipment {
       otp: otp ?? this.otp,
       isSentToFaotara: isSentToFaotara ?? this.isSentToFaotara,
       isAddressed: isAddressed ?? this.isAddressed,
+      isDeliveryFeeOnRecipient: isDeliveryFeeOnRecipient ?? this.isDeliveryFeeOnRecipient,
+      isCompanyDeliveryFeePaid: isCompanyDeliveryFeePaid ?? this.isCompanyDeliveryFeePaid,
+      isPayToRecipient: isPayToRecipient ?? this.isPayToRecipient,
     );
   }
+
+double get driverCollection {
+  double collection = 0.0;
+  
+  if (status == 'تم إرجاعها') {
+    return 0.0;
+  }
+
+  if (paymentMethod == 'مدفوعة مسبقا') {
+    if (isDeliveryFeeOnRecipient) {
+      if (!isCompanyDeliveryFeePaid) {
+        collection = deliveryCost;
+      }
+    }
+  } else if (paymentMethod == 'COD') {
+    collection = codAmount;
+  } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
+    if (!isPayToRecipient) { // التحصيل من المستلم
+      collection = codAmount;
+    }
+  }
+
+  return collection;
+}
+
+double get payableToCustomer {
+  double payable = 0.0;
+  
+  
+      if (status == "تم إرجاعها") {
+        if (getMoneyFromUserPalance == true) {
+          payable = -deliveryCost ?? 0.0;
+        }
+        return payable;
+      } 
+ 
+
+  if (paymentMethod == 'مدفوعة مسبقا') {
+    // Both case: Not COD amount paid to customer since prepaid.
+    // If Shipper pays delivery fee as cash to branch, 'isCompanyDeliveryFeePaid' = true, so no deduction
+    // If Shipper pays delivery fee from balance, 'isCompanyDeliveryFeePaid' = false, so we deduct
+    if (!isDeliveryFeeOnRecipient && !isCompanyDeliveryFeePaid) {
+      payable = -deliveryCost;
+    }
+  } else if (paymentMethod == 'COD') {
+    payable = codAmount - deliveryCost;
+  } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
+    if (isPayToRecipient) {
+      // الدفع للمستلم -> customer is paying out of their balance + delivery cost
+      payable = -codAmount - deliveryCost;
+    } else {
+      // التحصيل من المستلم
+      payable = codAmount - deliveryCost;
+    }
+  }
+
+  return payable;
+}
+
+
 
   static List<Shipment> getShipmentsWithDriverPrice(
       List<Shipment> shipments, List<ShippingRoute> driverShippingRoute) {
@@ -492,4 +572,10 @@ class Shipment {
     }
     return shipmentsWithDriverPrice;
   }
+
+
+
+
+
+
 }

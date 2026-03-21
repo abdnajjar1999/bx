@@ -56,7 +56,7 @@ class DriverDeliveryData {
 
     int partiallyCollected = shipments.where((s) => s.status == 'تم تحصيلها بشكل جزئي').length;
     int returned = shipments.where((s) => s.status == 'تم إرجاعها').length;
-    double totalCollections = shipments.where((s) => s.status != 'تم إرجاعها' || s.paymentMethod=='مدفوعة مسبقا').fold(0, (sum, shipment) => sum + (shipment.codAmount ?? 0));
+    double totalCollections = shipments.fold(0, (sum, shipment) => sum + (shipment.driverCollection ?? 0));
     double totalPrice = shipments.where((s) => !(s.returnedAfterDelivery == false && s.status == 'تم إرجاعها')).fold(0, (sum, shipment) => sum + (shipment.deliveryCost ?? 0));
 
 

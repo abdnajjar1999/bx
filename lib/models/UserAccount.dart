@@ -79,6 +79,10 @@ class UserAccount {
     }
     double taxFees = servicesFees * 0.15; // Assuming 15% tax on services
 
+    finalTotalAmount= shipments.fold(0, (sum, shipment) => sum + (shipment.payableToCustomer ?? 0));
+    finalTotalAmount+=servicesFees;
+    
+
     return UserAccount(
       id: firstShipment.userId ?? '',
       client: firstShipment.username ?? '',

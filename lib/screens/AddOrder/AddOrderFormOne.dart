@@ -4,8 +4,10 @@ import '../../models/Inventory.dart';
 import '../../models/Driver.dart';
 import '../../models/PriceCalculators.dart';
 import '../../models/Shipment.dart';
+import '../../shared/constants.dart';
 import '../ManageShipments/widget/SearchableDropdown.dart';
 import '../../shared/PrintHelper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
@@ -75,13 +77,19 @@ class AddOrderFormState extends State<AddOrderFormOne> {
   String? selectedCity;
   String? selectedCityPlace;
 
-  String selectedPaymentMethod = 'إحضار';
+  String selectedPaymentMethod = 'COD';
   String selectedCollectionMethod = 'كاش';
   String selectedServiceType = 'اعتيادي';
   String selectedPickupLocation = 'من عنوان الزبون';
   int parcelCount = 1;
   DateTime? deliveryDate;
   DateTime? expectedDeliveryDate;
+
+  // New states for payment logic
+  bool isDeliveryFeeOnRecipient = true;
+  bool isCompanyDeliveryFeePaid = false;
+  bool isPayToRecipient = false;
+  bool hasUnclosedOrders = false;
 
   @override
   void initState() {
@@ -90,7 +98,6 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     _initializeFormData();
   }
 
-  List<String> serviceTypes = ['اعتيادي', 'سريع', 'ثلاث الى خمس ايام'];
 
   void _initializeFormData() {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
@@ -162,6 +169,9 @@ class AddOrderFormState extends State<AddOrderFormOne> {
         canBeFolded: false,
         measurementForbidden: false,
       );
+      isDeliveryFeeOnRecipient = true;
+      isCompanyDeliveryFeePaid = false;
+      isPayToRecipient = false;
     }
   }
 
@@ -261,6 +271,9 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           cashPossession: _isEditMode
               ? widget.shipment!.cashPossession
               : CashPossession.receiver,
+          isDeliveryFeeOnRecipient: isDeliveryFeeOnRecipient,
+          isCompanyDeliveryFeePaid: isCompanyDeliveryFeePaid,
+          isPayToRecipient: isPayToRecipient,
           logs: _isEditMode
               ? [
                   ...widget.shipment!.logs,
@@ -340,16 +353,20 @@ class AddOrderFormState extends State<AddOrderFormOne> {
               isFragile: false,
               needsPackaging: false,
               hasDangerousMaterials: false,
-              isNonOpenable: false,
-              canBeFolded: false,
-              measurementForbidden: false,
-            );
-            showInventorySection = false;
-            selectedInventoryItems.clear();
-            _availableSupplyOrders.clear();
-            _selectedSupplyQuantities.clear();
-          });
-          break;
+            isNonOpenable: false,
+            canBeFolded: false,
+            measurementForbidden: false,
+          );
+          showInventorySection = false;
+          selectedInventoryItems.clear();
+          _availableSupplyOrders.clear();
+          _selectedSupplyQuantities.clear();
+          
+          isDeliveryFeeOnRecipient = true;
+          isCompanyDeliveryFeePaid = false;
+          isPayToRecipient = false;
+        });
+        break;
       }
     } catch (e) {
       if (mounted) {
@@ -742,10 +759,14 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           label: 'المتجر/الزبون',
           value: appProvider.selectedCustomer,
           items: appProvider.customers,
-          onChanged: (value) {
+          onChanged: (value) async {
             setState(() => appProvider.selectedCustomer = value);
             calculateDeliveryCost(appProvider);
-            _checkSupplyOrders(appProvider, value!);
+            if (value != null) {
+              _checkSupplyOrders(appProvider, value);
+              // Check past unclosed orders for this customer
+              await _checkUnclosedOrders(value.userid);
+            }
           },
           searchController: customerSearchController,
           hint: 'اختر المتجر/الزبون',
@@ -847,14 +868,16 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 keyboardType: TextInputType.number,
               ),
             ),
-            SizedBox(width: 16),
-            Expanded(
-              child: _buildTextField(
-                controller: codAmountController,
-                label: 'التحصيل شامل التوصيل',
-                keyboardType: TextInputType.number,
+            if (selectedPaymentMethod == 'COD') ...[
+              SizedBox(width: 16),
+              Expanded(
+                child: _buildTextField(
+                  controller: codAmountController,
+                  label: 'التحصيل شامل التوصيل',
+                  keyboardType: TextInputType.number,
+                ),
               ),
-            ),
+            ],
           ],
         ),
         Row(
@@ -864,8 +887,18 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 label: 'طريقة الدفع',
                 value: selectedPaymentMethod,
                 items: paymentMethods,
-                onChanged: (value) =>
-                    setState(() => selectedPaymentMethod = value!),
+                onChanged: (value) {
+                  setState(() {
+                     selectedPaymentMethod = value!;
+                     if (selectedPaymentMethod == 'مدفوعة مسبقا') {
+                       isDeliveryFeeOnRecipient = true;
+                       isCompanyDeliveryFeePaid = false;
+                       codAmountController.text = '0';
+                     } else if (selectedPaymentMethod == 'تبديل' || selectedPaymentMethod == 'إحضار') {
+                       isPayToRecipient = false;
+                     }
+                  });
+                },
                 searchController: paymentMethodSearchController,
               ),
             ),
@@ -882,7 +915,126 @@ class AddOrderFormState extends State<AddOrderFormOne> {
             ),
           ],
         ),
+        
+        // Conditionally show extra payment controls
+        if (selectedPaymentMethod == 'مدفوعة مسبقا') _buildPrepaidSection(),
+        if (selectedPaymentMethod == 'تبديل' || selectedPaymentMethod == 'إحضار') _buildExchangeOrPickupSection(),
       ],
+    );
+  }
+
+  Widget _buildPrepaidSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16,),
+        _buildSectionTitle('خيارات مسار الدفع'),
+        _buildSwitch(
+          'المستلم سيدفع سعر التوصيل',
+          isDeliveryFeeOnRecipient,
+          (value) => setState(() {
+            isDeliveryFeeOnRecipient = value;
+            if (value) {
+              isCompanyDeliveryFeePaid = false;
+            }
+          }),
+        ),
+        if (!isDeliveryFeeOnRecipient)
+           Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               SizedBox(height: 8),
+               Text('طريقة دفع البائع لتسديد رسوم التوصيل', style: TextStyle(fontWeight: FontWeight.bold)),
+               Row(
+                 children: [
+                   Expanded(
+                     child: ListTile(
+                       title: Text('دفع من رصيد البائع', style: TextStyle(fontSize: 13)),
+                       leading: Radio<bool>(
+                         value: false, // isCompanyDeliveryFeePaid = false means from seller balance
+                         groupValue: isCompanyDeliveryFeePaid,
+                         onChanged: hasUnclosedOrders ? (value) {
+                           setState(() => isCompanyDeliveryFeePaid = value!);
+                         } : null, // Disable if no unclosed orders
+                         activeColor: Color(0xFFDC2626),
+                       ),
+                       subtitle: !hasUnclosedOrders ? Text('غير متاح حاليا الا اذا كان يوجد طلبات سابقة غير مقفلة', style: TextStyle(fontSize: 11, color: Colors.grey)) : null,
+                     ),
+                   ),
+                   Expanded(
+                     child: ListTile(
+                       title: Text('دفع كاش', style: TextStyle(fontSize: 13)),
+                       leading: Radio<bool>(
+                         value: true, // isCompanyDeliveryFeePaid = true means cash paid to company directly
+                         groupValue: isCompanyDeliveryFeePaid,
+                         onChanged: (value) {
+                           setState(() => isCompanyDeliveryFeePaid = value!);
+                         },
+                         activeColor: Color(0xFFDC2626),
+                       ),
+                     ),
+                   ),
+                 ],
+               ),
+             ],
+           ),
+      ]
+    );
+  }
+
+  Widget _buildExchangeOrPickupSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16,),
+        _buildSectionTitle('خيارات التحصيل'),
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _buildTextField(
+                controller: codAmountController,
+                label: selectedPaymentMethod == 'تبديل' ? 'قيمة الفرق/الاستبدال' : 'المبلغ المطلوب',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Radio<bool>(
+                        value: false, // isPayToRecipient = false
+                        groupValue: isPayToRecipient,
+                        onChanged: (value) {
+                          setState(() => isPayToRecipient = value!);
+                        },
+                        activeColor: Color(0xFFDC2626),
+                      ),
+                      Text('تحصيل من المستلم', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Radio<bool>(
+                        value: true, // isPayToRecipient = true
+                        groupValue: isPayToRecipient,
+                        onChanged: (value) {
+                          setState(() => isPayToRecipient = value!);
+                        },
+                        activeColor: Color(0xFFDC2626),
+                      ),
+                      Text('الدفع للمستلم', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        )
+      ]
     );
   }
 
@@ -1450,14 +1602,24 @@ class AddOrderFormState extends State<AddOrderFormOne> {
       print("Error checking supply orders: $e");
     }
   }
+
+  Future<void> _checkUnclosedOrders(String customerId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('userId', isEqualTo: customerId)
+          .where('cashPossession', isNotEqualTo: 'customer')
+          .limit(1)
+          .get();
+
+      if (mounted) {
+        setState(() {
+           hasUnclosedOrders = snapshot.docs.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      print("Error checking unclosed orders: $e");
+    }
+  }
 }
 
-final List<String> paymentMethods = ['تبديل', 'COD', 'مدفوعة مسبقا', 'إحضار'];
-final List<String> collectionMethods = [
-  'كاش',
-  'تحويل بنكي',
-  'شك',
-  'دفع مسبق',
-  'محفظة الكترونية',
-  'بطاقة الائتمان',
-];
