@@ -17,7 +17,6 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
   List<Customer> selectedCustomers = [];
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -124,34 +123,15 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: CustomTextField(
-                                controller: _firstNameController,
-                                labelText: 'الاسم الأول',
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'الرجاء إدخال الاسم الأول';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: CustomTextField(
-                                controller: _lastNameController,
-                                labelText: 'اسم العائلة',
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) {
-                                    return 'الرجاء إدخال اسم العائلة';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
+                        CustomTextField(
+                          controller: _firstNameController,
+                          labelText: 'الاسم الترويجي',
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'الرجاء إدخال الاسم الترويجي';
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
                         Row(
@@ -363,8 +343,7 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
   void _selectCustomer(Customer customer) {
     setState(() {
       selectedCustomer = customer;
-      _firstNameController.text = customer.username.split(' ')[0];
-      _lastNameController.text = customer.username.split(' ').skip(1).join(' ');
+      _firstNameController.text = customer.username;
       _emailController.text = customer.email.replaceAll('.com', '');
       _phoneController.text = customer.phoneNumber;
       _addressController.text = customer.address;
@@ -389,7 +368,6 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
       selectedCustomer = null;
       _formKey.currentState?.reset();
       _firstNameController.clear();
-      _lastNameController.clear();
       _emailController.clear();
       _passwordController.clear();
       _phoneController.clear();
@@ -424,8 +402,7 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
 
           final customer = Customer(
             userid: userCredential.user!.uid,
-            username:
-                '${_firstNameController.text} ${_lastNameController.text}',
+            username: _firstNameController.text,
             email: email,
             password: _passwordController.text,
             phoneNumber: _phoneController.text,
@@ -447,8 +424,7 @@ class _ManageCustomersScreenState extends State<AddCustomerDialog> {
           // Update existing customer
           final customer = Customer(
             userid: selectedCustomer!.userid,
-            username:
-                '${_firstNameController.text} ${_lastNameController.text}',
+            username: _firstNameController.text,
             email: selectedCustomer!.email,
             password: selectedCustomer!.password,
             phoneNumber: _phoneController.text,

@@ -866,7 +866,6 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                       label: 'المدينة',
                       value: selectedRecipientCityOnly,
                       items: cities
-                          .map((city) => city.split(" ")[0])
                           .toSet()
                           .toList(),
                       onChanged: (value) {

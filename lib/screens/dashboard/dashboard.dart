@@ -140,7 +140,6 @@ class _dashboardState extends State<dashboard> {
       return Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: background,
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -172,7 +171,6 @@ class _dashboardState extends State<dashboard> {
       return Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: background,
           endDrawer: AddOrderForm(),
           // Add drawer for mobile view
           drawer: !isDesktop

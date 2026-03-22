@@ -1,6 +1,6 @@
 import '../../models/customer.dart';
 import '../../models/Driver.dart';
-import '../../models/PriceCalculators.dart';
+
 import '../../models/Shipment.dart';
 import '../ManageShipments/widget/SearchableDropdown.dart';
 import '../../shared/PrintHelper.dart';
@@ -11,7 +11,12 @@ import 'package:provider/provider.dart';
 
 import '../../main.dart';
 import '../../shared/appProvider.dart';
+import '../../sadrad/colors.dart';
 import '../../shared/constants.dart';
+import '../../models/City.dart';
+
+const Color primary = SadradColors.primary;
+const Color background = SadradColors.background;
 
 class ShipmentData {
   // Form Controllers
@@ -45,6 +50,7 @@ class ShipmentData {
 
   // Form State
   String? selectedCity;
+  String? selectedRegion;
   String? selectedCityPlace;
   String selectedPaymentMethod = 'إحضار';
   String selectedCollectionMethod = 'كاش';
@@ -101,6 +107,7 @@ class ShipmentData {
     citySearchController.clear();
 
     selectedCity = null;
+    selectedRegion = null;
     selectedCityPlace = null;
     selectedPaymentMethod = 'إحضار';
     selectedCollectionMethod = 'كاش';
@@ -185,6 +192,7 @@ class AddOrderFormState extends State<AddOrderForm> {
 
   // Form State
   String? selectedCity;
+  String? selectedRegion;
   String? selectedCityPlace;
 
   String selectedPaymentMethod = 'إحضار';
@@ -243,6 +251,18 @@ class AddOrderFormState extends State<AddOrderForm> {
       contentController.text = shipment.contents;
       weightController.text = shipment.weight.toString();
       notesController.text = shipment.notes;
+      // Split city for edit mode
+      if (shipment.city.contains(' ')) {
+        int spaceIndex = shipment.city.lastIndexOf(' ');
+        selectedCity = shipment.city.substring(0, spaceIndex);
+        selectedRegion = shipment.city.substring(spaceIndex + 1);
+        citySearchController.text = selectedCity!;
+      } else {
+        selectedCity = shipment.city;
+        selectedRegion = null;
+        citySearchController.text = selectedCity ?? '';
+      }
+      
       if (shipment.selectedItems != null) {
         selectedInventoryItems = shipment.selectedItems!;
         showInventorySection = true;
@@ -250,7 +270,7 @@ class AddOrderFormState extends State<AddOrderForm> {
 
       // Set dropdown values
       setState(() {
-        selectedCity = shipment.city.split(' ')[0];
+        selectedCity = shipment.city;
         if (appProvider.citiesAndPlacesNames.contains(shipment.city)) {
           selectedCityPlace = shipment.city;
         }
@@ -321,7 +341,7 @@ class AddOrderFormState extends State<AddOrderForm> {
     });
   }
 
-  ShipmentData get _currentShipment => shipments[currentShipmentIndex];
+
 
   void _handleSubmit(AppProvider appProvider) {
     if (!_formKey.currentState!.validate()) return;
@@ -501,23 +521,25 @@ class AddOrderFormState extends State<AddOrderForm> {
               key: _formKey,
               child: Column(
                 children: [
+                  _buildHeader(context),
                   _buildShipmentTabs(),
+                  _buildBulkSummary(appProvider),
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.all(isMobile ? 8 : 16),
+                      padding: EdgeInsets.all(isMobile ? 12 : 24),
                       child: Column(
                         children: [
                           _buildSenderSection(appProvider),
-                          SizedBox(height: isMobile ? 12 : 20),
+                          const SizedBox(height: 24),
                           _buildShipmentRows(appProvider),
-                          SizedBox(height: isMobile ? 12 : 20),
+                          const SizedBox(height: 32),
                           _buildAddShipmentButton(),
-                          SizedBox(height: isMobile ? 12 : 20),
-                          _buildSubmitButton(appProvider),
+                          const SizedBox(height: 48),
                         ],
                       ),
                     ),
                   ),
+                  _buildBottomActions(appProvider),
                 ],
               ),
             ),
@@ -527,64 +549,28 @@ class AddOrderFormState extends State<AddOrderForm> {
     );
   }
 
-  Widget _buildShipmentTabs() {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
+  Widget _buildHeader(BuildContext context) {
     return Container(
-      height: isMobile ? 50 : 60,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
+      padding: const EdgeInsets.all(20),
+      color: Colors.white,
       child: Row(
         children: [
-          Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: shipments.length,
-              itemBuilder: (context, index) {
-                final isSelected = index == currentShipmentIndex;
-                return GestureDetector(
-                  onTap: () => _selectShipment(index),
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-                    padding: EdgeInsets.symmetric(
-                        horizontal: isMobile ? 6 : 16,
-                        vertical: isMobile ? 3 : 8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? primary : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected ? primary : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'شحنة ${index + 1}',
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.bold,
-                            fontSize: isMobile ? 9 : 14,
-                          ),
-                        ),
-                        if (shipments.length > 1) ...[
-                          SizedBox(width: 3),
-                          GestureDetector(
-                            onTap: () => _removeShipment(index),
-                            child: Icon(
-                              Icons.close,
-                              size: isMobile ? 10 : 16,
-                              color: isSelected ? Colors.white : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
+          const Icon(Icons.grid_view_rounded, color: primary, size: 28),
+          const SizedBox(width: 12),
+          const Text(
+            'إضافة طلبات بالجملة',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: SadradColors.textPrimary,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade100,
             ),
           ),
         ],
@@ -592,176 +578,513 @@ class AddOrderFormState extends State<AddOrderForm> {
     );
   }
 
-  Widget _buildShipmentRows(AppProvider appProvider) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-    bool isVerySmallDesktop = MediaQuery.of(context).size.width < 800;
+  Widget _buildBulkSummary(AppProvider appProvider) {
+    double totalCod = 0;
+    for (var s in shipments) {
+      totalCod += double.tryParse(s.codAmountController.text) ?? 0;
+    }
 
-    return Column(
-      children: [
-        // Header row - only show on desktop and not very small screens
-        if (!isMobile && !isVerySmallDesktop) ...[
-          _buildShipmentHeaderRow(),
-          SizedBox(height: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Colors.grey.shade100),
+          bottom: BorderSide(color: Colors.grey.shade100),
+        ),
+      ),
+      child: Row(
+        children: [
+          _buildSummaryItem('عدد الشحنات', '${shipments.length}',
+              Icons.local_shipping_outlined),
+          _buildSummaryDivider(),
+          _buildSummaryItem('إجمالي التحصيل',
+              '${totalCod.toStringAsFixed(2)} JOD', Icons.payments_outlined),
         ],
-        // Shipment rows
-        ...List.generate(shipments.length, (index) {
-          return _buildSingleShipmentRow(index, appProvider);
-        }),
-      ],
+      ),
     );
   }
 
-  Widget _buildShipmentHeaderRow() {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 4 : 12),
-      decoration: BoxDecoration(
-        color: primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: primary.withOpacity(0.3)),
-      ),
-      child: Column(
+  Widget _buildSummaryItem(String label, String value, IconData icon) {
+    return Expanded(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
+          Icon(icon, size: 20, color: primary.withOpacity(0.7)),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                  flex: 2,
-                  child: Text('اسم المستلم',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('رقم الجوال',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('المدينة',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('وصف العنوان',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('سعر التوصيل',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('التحصيل',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('الوزن',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('المحتويات',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('الملاحظات',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 1,
-                  child: Text('الإجراءات',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-            ],
-          ),
-          SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                  child: Text('موقع الاستلام',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: primary,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('من الزبون',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('مع السائق',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('في الفرع',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(
-                  flex: 2,
-                  child: Text('السائق (إذا كان مع السائق)',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: isMobile ? 7 : 12))),
-              Expanded(flex: 3, child: SizedBox()), // Empty space for alignment
+              Text(label,
+                  style:
+                      const TextStyle(fontSize: 10, color: SadradColors.textMuted)),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: SadradColors.textPrimary)),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryDivider() {
+    return Container(
+      height: 30,
+      width: 1,
+      color: Colors.grey.shade200,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+    );
+  }
+
+  Widget _buildShipmentTabs() {
+    bool isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Container(
+      height: isMobile ? 50 : 66,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: shipments.length,
+        itemBuilder: (context, index) {
+          final isSelected = index == currentShipmentIndex;
+          return GestureDetector(
+            onTap: () => _selectShipment(index),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: isSelected ? primary : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: isSelected ? primary : Colors.grey.shade200,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                            color: primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4))
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'شحنة ${index + 1}',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : SadradColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (shipments.length > 1) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _removeShipment(index),
+                      child: Icon(
+                        Icons.close,
+                        size: 14,
+                        color: isSelected ? Colors.white70 : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildShipmentRows(AppProvider appProvider) {
+    return Column(
+      children: List.generate(shipments.length, (index) {
+        return _buildSingleShipmentRow(index, appProvider);
+      }),
     );
   }
 
   Widget _buildSingleShipmentRow(int index, AppProvider appProvider) {
     final shipment = shipments[index];
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-    bool isVerySmallDesktop = MediaQuery.of(context).size.width < 800;
+    bool isMobile = MediaQuery.of(context).size.width < 700;
 
     return Container(
-      margin: EdgeInsets.only(bottom: isMobile ? 4 : 8),
-      padding: EdgeInsets.all(isMobile ? 6 : 12),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: Offset(0, 1),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Pickup location selection
-          _buildPickupLocationRow(shipment, appProvider),
-          SizedBox(height: isMobile ? 6 : 12),
+          // Header of the shipment card
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.05),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: primary,
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'تفاصيل الشحنة',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: primary),
+                ),
+                const Spacer(),
+                if (shipments.length > 1)
+                  IconButton(
+                    onPressed: () => _removeShipment(index),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.red, size: 20),
+                    tooltip: 'حذف هذه الشحنة',
+                  ),
+              ],
+            ),
+          ),
 
-          if (isMobile || isVerySmallDesktop)
-            // Mobile layout - vertical fields
-            _buildMobileShipmentFields(shipment, index)
-          else
-            // Desktop layout - horizontal fields
-            _buildDesktopShipmentFields(shipment, index),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildPickupLocationRow(shipment, appProvider),
+                const SizedBox(height: 24),
+                isMobile
+                    ? _buildMobileShipmentFields(shipment, index)
+                    : _buildDesktopShipmentFields(shipment, index),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required String hint,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    FocusNode? nextFocus,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: Icon(icon, size: 20, color: primary.withOpacity(0.5)),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: primary, width: 2),
+            ),
+          ),
+          onFieldSubmitted: (_) => nextFocus?.requestFocus(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddShipmentButton() {
+    return Container(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _addNewShipment,
+        icon: const Icon(Icons.add_circle_outline, size: 24),
+        label: const Text(
+          'إضافة شحنة أخرى لهذه القائمة',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primary,
+          side: const BorderSide(color: primary, width: 2),
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildCitySearchField(ShipmentData shipment, AppProvider appProvider) {
+    return SearchableDropdown<String>(
+      label: 'المدينة',
+      value: shipment.selectedCity,
+      items: appProvider.cities,
+      onChanged: (value) {
+        setState(() {
+          shipment.selectedCity = value;
+          shipment.selectedRegion = null;
+          shipment.selectedCityPlace = value;
+          shipment.citySearchController.text = value ?? '';
+        });
+        calculateDeliveryCost(appProvider, specificShipment: shipment);
+      },
+      searchController: shipment.citySearchController,
+      hint: 'اختر المدينة',
+    );
+  }
+
+
+  Widget _buildRegionDropdown(dynamic target, AppProvider appProvider) {
+    String? city = target is ShipmentData ? target.selectedCity : selectedCity;
+    String? region =
+        target is ShipmentData ? target.selectedRegion : selectedRegion;
+
+    List<String> items = [];
+    if (city != null) {
+      try {
+        items = appProvider.citiesAndPlaces
+            .firstWhere((c) => c.name == city)
+            .places;
+      } catch (e) {
+        // Fallback or empty
+      }
+    }
+
+    return SearchableDropdown<String>(
+      label: 'المنطقة',
+      value: region,
+      items: items,
+      onChanged: (value) {
+        setState(() {
+          if (target is ShipmentData) {
+            target.selectedRegion = value;
+            target.selectedCityPlace =
+                (target.selectedCity ?? "") + " " + (value ?? "");
+          } else {
+            selectedRegion = value;
+            selectedCityPlace = (selectedCity ?? "") + " " + (value ?? "");
+          }
+        });
+      },
+      searchController: TextEditingController(),
+      hint: 'المنطقة',
+    );
+  }
+
+
+
+  Widget _buildPickupLocationRow(ShipmentData shipment, AppProvider appProvider) {
+    bool isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'موقع استلام الشحنة',
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        isMobile
+            ? Column(
+                children: [
+                  _buildPickupLocationButton(
+                    icon: Icons.person_outline,
+                    title: 'من الزبون',
+                    subtitle: 'استلام من موقع المرسل',
+                    isSelected:
+                        shipment.selectedPickupLocation == 'من عنوان الزبون',
+                    onTap: () => setState(() =>
+                        shipment.selectedPickupLocation = 'من عنوان الزبون'),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildPickupLocationButton(
+                    icon: Icons.local_shipping_outlined,
+                    title: 'مع السائق',
+                    subtitle: 'السائق يستلم الشحنة',
+                    isSelected: shipment.selectedPickupLocation == 'مع السائق',
+                    onTap: () => setState(
+                        () => shipment.selectedPickupLocation = 'مع السائق'),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildPickupLocationButton(
+                    icon: Icons.store_outlined,
+                    title: 'في الفرع',
+                    subtitle: 'تسليم في فرع الشركة',
+                    isSelected: shipment.selectedPickupLocation == 'في الفرع',
+                    onTap: () => setState(
+                        () => shipment.selectedPickupLocation = 'في الفرع'),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _buildPickupLocationButton(
+                      icon: Icons.person_outline,
+                      title: 'من الزبون',
+                      subtitle: 'من موقع المرسل',
+                      isSelected:
+                          shipment.selectedPickupLocation == 'من عنوان الزبون',
+                      onTap: () => setState(() =>
+                          shipment.selectedPickupLocation = 'من عنوان الزبون'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPickupLocationButton(
+                      icon: Icons.local_shipping_outlined,
+                      title: 'مع السائق',
+                      subtitle: 'استلام خارجي',
+                      isSelected: shipment.selectedPickupLocation == 'مع السائق',
+                      onTap: () => setState(
+                          () => shipment.selectedPickupLocation = 'مع السائق'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPickupLocationButton(
+                      icon: Icons.store_outlined,
+                      title: 'في الفرع',
+                      subtitle: 'تسليم للفرع',
+                      isSelected: shipment.selectedPickupLocation == 'في الفرع',
+                      onTap: () => setState(
+                          () => shipment.selectedPickupLocation = 'في الفرع'),
+                    ),
+                  ),
+                ],
+              ),
+        if (shipment.selectedPickupLocation == 'مع السائق') ...[
+          const SizedBox(height: 20),
+          SearchableDropdown<Driver>(
+            label: 'اختر السائق المستلم',
+            value: appProvider.selectedDriver,
+            items: appProvider.drivers,
+            onChanged: (value) =>
+                setState(() => appProvider.selectedDriver = value),
+            searchController: driverSearchController,
+            hint: 'ابحث عن اسم السائق...',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPickupLocationButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? primary : Colors.grey.shade200,
+                width: isSelected ? 2 : 1,
+              ),
+              color: isSelected ? primary.withOpacity(0.05) : Colors.white,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? primary : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: isSelected ? Colors.white : Colors.grey,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: isSelected ? primary : Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isSelected
+                              ? primary.withOpacity(0.7)
+                              : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: primary, size: 20),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -769,857 +1092,418 @@ class AddOrderFormState extends State<AddOrderForm> {
   Widget _buildMobileShipmentFields(ShipmentData shipment, int index) {
     return Column(
       children: [
-        // Row 1: Name and Phone
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: shipment.recipientNameController,
-                focusNode: shipment.recipientNameFocus,
-                decoration: InputDecoration(
-                  hintText: 'اسم المستلم',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.phoneFocus.requestFocus();
-                },
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: TextFormField(
-                validator: (value) {
-                  if (value == null ||
-                      value.isEmpty ||
-                      !value.startsWith('07') ||
-                      value.length != 10 ||
-                      !value.contains(new RegExp(r'^[0-9]+$'))) {
-                    return 'رقم الجوال يجب أن يبدأ بالرقم 07 ويتكون من 10 أرقام فقط';
-                  }
-                  return null;
-                },
-                controller: shipment.phoneController,
-                focusNode: shipment.phoneFocus,
-                decoration: InputDecoration(
-                  hintText: 'رقم الجوال',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                textAlign: TextAlign.right,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.citySearchFocus.requestFocus();
-                },
-              ),
-            ),
-          ],
+        _buildModernTextField(
+          controller: shipment.recipientNameController,
+          focusNode: shipment.recipientNameFocus,
+          hint: 'اسم المستلم الثلاثي',
+          label: 'اسم المستلم',
+          icon: Icons.person_outline,
+          nextFocus: shipment.phoneFocus,
         ),
-        SizedBox(height: 12),
-
-        // Row 2: City and Address
-        Row(
-          children: [
-            Expanded(
-              child: _buildCitySearchField(
-                  shipment, Provider.of<AppProvider>(context, listen: false)),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: TextFormField(
-                controller: shipment.addressDescController,
-                focusNode: shipment.addressDescFocus,
-                decoration: InputDecoration(
-                  hintText: 'وصف العنوان',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.deliveryCostFocus.requestFocus();
-                },
-              ),
-            ),
-          ],
+        const SizedBox(height: 16),
+        _buildModernTextField(
+          controller: shipment.phoneController,
+          focusNode: shipment.phoneFocus,
+          hint: '07XXXXXXXX',
+          label: 'رقم الجوال',
+          icon: Icons.phone_android_outlined,
+          keyboardType: TextInputType.phone,
+          nextFocus: shipment.citySearchFocus,
         ),
-        SizedBox(height: 12),
-
-        // Row 3: Delivery Cost and COD Amount
+        const SizedBox(height: 16),
+        _buildCitySearchField(
+            shipment, Provider.of<AppProvider>(context, listen: false)),
+        const SizedBox(height: 16),
+        _buildRegionDropdown(
+            shipment, Provider.of<AppProvider>(context, listen: false)),
+        const SizedBox(height: 16),
+        _buildModernTextField(
+          controller: shipment.addressDescController,
+          focusNode: shipment.addressDescFocus,
+          hint: 'مثال: قرب مسجد التقوى، عمارة رقم 5',
+          label: 'وصف العنوان التفصيلي',
+          icon: Icons.location_on_outlined,
+          nextFocus: shipment.codAmountFocus,
+        ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
-              child: TextFormField(
-                controller: shipment.deliveryCostController,
-                focusNode: shipment.deliveryCostFocus,
-                decoration: InputDecoration(
-                  hintText: 'سعر التوصيل',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.codAmountFocus.requestFocus();
-                },
-              ),
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: TextFormField(
+              child: _buildModernTextField(
                 controller: shipment.codAmountController,
                 focusNode: shipment.codAmountFocus,
-                decoration: InputDecoration(
-                  hintText: 'التحصيل',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
+                hint: '0.00',
+                label: 'المبلغ المطلوب (COD)',
+                icon: Icons.payments_outlined,
                 keyboardType: TextInputType.number,
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.weightFocus.requestFocus();
-                },
+                nextFocus: shipment.deliveryCostFocus,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.deliveryCostController,
+                focusNode: shipment.deliveryCostFocus,
+                hint: '0.00',
+                label: 'سعر التوصيل',
+                icon: Icons.local_shipping_outlined,
+                keyboardType: TextInputType.number,
+                nextFocus: shipment.weightFocus,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12),
-
-        // Row 4: Weight and Content
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
-              child: TextFormField(
+              child: _buildModernTextField(
                 controller: shipment.weightController,
                 focusNode: shipment.weightFocus,
-                decoration: InputDecoration(
-                  hintText: 'الوزن',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
+                hint: '1.0',
+                label: 'الوزن (كغم)',
+                icon: Icons.fitness_center_outlined,
                 keyboardType: TextInputType.number,
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.contentFocus.requestFocus();
-                },
+                nextFocus: shipment.contentFocus,
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
-              child: TextFormField(
+              child: _buildModernTextField(
                 controller: shipment.contentController,
                 focusNode: shipment.contentFocus,
-                decoration: InputDecoration(
-                  hintText: 'المحتويات',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(fontSize: 12),
-                onFieldSubmitted: (value) {
-                  shipment.notesFocus.requestFocus();
-                },
+                hint: 'مثال: ملابس، إلكترونيات',
+                label: 'محتويات الشحنة',
+                icon: Icons.inventory_2_outlined,
+                nextFocus: shipment.notesFocus,
               ),
             ),
           ],
         ),
-        SizedBox(height: 12),
-
-        // Row 5: Notes and Actions
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: shipment.notesController,
-                focusNode: shipment.notesFocus,
-                decoration: InputDecoration(
-                  hintText: 'الملاحظات',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4)),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  isDense: false,
-                  hintStyle: TextStyle(fontSize: 12),
-                ),
-                textAlign: TextAlign.right,
-                textInputAction: TextInputAction.done,
-                style: TextStyle(fontSize: 12),
-              ),
-            ),
-            SizedBox(width: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (shipments.length > 1)
-                  IconButton(
-                    onPressed: () => _removeShipment(index),
-                    icon: Icon(Icons.delete, color: Colors.red, size: 16),
-                    tooltip: 'حذف الشحنة',
-                    padding: EdgeInsets.all(2),
-                    constraints: BoxConstraints(minWidth: 28, minHeight: 28),
-                  ),
-                IconButton(
-                  onPressed: () => _selectShipment(index),
-                  icon: Icon(Icons.edit, color: primary, size: 16),
-                  tooltip: 'تعديل الشحنة',
-                  padding: EdgeInsets.all(2),
-                  constraints: BoxConstraints(minWidth: 28, minHeight: 28),
-                ),
-              ],
-            ),
-          ],
+        const SizedBox(height: 16),
+        _buildModernTextField(
+          controller: shipment.notesController,
+          focusNode: shipment.notesFocus,
+          hint: 'أي ملاحظات إضافية للسائق...',
+          label: 'ملاحظات إضافية',
+          icon: Icons.note_add_outlined,
         ),
       ],
     );
   }
 
   Widget _buildDesktopShipmentFields(ShipmentData shipment, int index) {
-    bool isSmallScreen = MediaQuery.of(context).size.width < 1200;
-    bool isVerySmallScreen = MediaQuery.of(context).size.width < 1000;
-
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: TextFormField(
-            controller: shipment.recipientNameController,
-            focusNode: shipment.recipientNameFocus,
-            decoration: InputDecoration(
-              hintText: 'اسم المستلم',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.phoneFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 2,
-          child: TextFormField(
-            controller: shipment.phoneController,
-            focusNode: shipment.phoneFocus,
-            decoration: InputDecoration(
-              hintText: 'رقم الجوال',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            textAlign: TextAlign.right,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.citySearchFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 2,
-          child: _buildCitySearchField(
-              shipment, Provider.of<AppProvider>(context, listen: false)),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 2,
-          child: TextFormField(
-            controller: shipment.addressDescController,
-            focusNode: shipment.addressDescFocus,
-            decoration: InputDecoration(
-              hintText: 'وصف العنوان',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.deliveryCostFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: TextFormField(
-            controller: shipment.deliveryCostController,
-            focusNode: shipment.deliveryCostFocus,
-            decoration: InputDecoration(
-              hintText: 'سعر التوصيل',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.codAmountFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: TextFormField(
-            controller: shipment.codAmountController,
-            focusNode: shipment.codAmountFocus,
-            decoration: InputDecoration(
-              hintText: 'التحصيل',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.weightFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: TextFormField(
-            controller: shipment.weightController,
-            focusNode: shipment.weightFocus,
-            decoration: InputDecoration(
-              hintText: 'الوزن',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            keyboardType: TextInputType.number,
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.contentFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: TextFormField(
-            controller: shipment.contentController,
-            focusNode: shipment.contentFocus,
-            decoration: InputDecoration(
-              hintText: 'المحتويات',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            onFieldSubmitted: (value) {
-              shipment.notesFocus.requestFocus();
-            },
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: TextFormField(
-            controller: shipment.notesController,
-            focusNode: shipment.notesFocus,
-            decoration: InputDecoration(
-              hintText: 'الملاحظات',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16),
-                  vertical: 12),
-              isDense: false,
-            ),
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.done,
-          ),
-        ),
-        SizedBox(width: isVerySmallScreen ? 6 : (isSmallScreen ? 8 : 12)),
-        Expanded(
-          flex: 1,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (shipments.length > 1)
-                IconButton(
-                  onPressed: () => _removeShipment(index),
-                  icon: Icon(Icons.delete,
-                      color: Colors.red,
-                      size: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                  tooltip: 'حذف الشحنة',
-                  padding: EdgeInsets.all(
-                      isVerySmallScreen ? 1 : (isSmallScreen ? 2 : 4)),
-                  constraints: BoxConstraints(
-                      minWidth:
-                          isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
-                      minHeight:
-                          isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32)),
-                ),
-              IconButton(
-                onPressed: () => _selectShipment(index),
-                icon: Icon(Icons.edit,
-                    color: primary,
-                    size: isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                tooltip: 'تعديل الشحنة',
-                padding: EdgeInsets.all(
-                    isVerySmallScreen ? 1 : (isSmallScreen ? 2 : 4)),
-                constraints: BoxConstraints(
-                    minWidth:
-                        isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
-                    minHeight:
-                        isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPickupLocationRow(
-      ShipmentData shipment, AppProvider appProvider) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('موقع الاستلام:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
-          SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPickupLocationButton(
-                  'من الزبون',
-                  shipment.selectedPickupLocation == 'من عنوان الزبون',
-                  () => setState(() =>
-                      shipment.selectedPickupLocation = 'من عنوان الزبون'),
-                ),
-              ),
-              SizedBox(width: 4),
-              Expanded(
-                child: _buildPickupLocationButton(
-                  'مع السائق',
-                  shipment.selectedPickupLocation == 'مع السائق',
-                  () => setState(
-                      () => shipment.selectedPickupLocation = 'مع السائق'),
-                ),
-              ),
-              SizedBox(width: 4),
-              Expanded(
-                child: _buildPickupLocationButton(
-                  'في الفرع',
-                  shipment.selectedPickupLocation == 'في الفرع',
-                  () => setState(
-                      () => shipment.selectedPickupLocation = 'في الفرع'),
-                ),
-              ),
-            ],
-          ),
-          if (shipment.selectedPickupLocation == 'مع السائق') ...[
-            SizedBox(height: 6),
-            SearchableDropdown<Driver>(
-              label: 'السائق',
-              value: appProvider.selectedDriver,
-              items: appProvider.drivers,
-              onChanged: (value) =>
-                  setState(() => appProvider.selectedDriver = value),
-              searchController: driverSearchController,
-              hint: 'اختر السائق',
-            ),
-          ],
-        ],
-      );
-    } else {
-      return Row(
-        children: [
-          Text('موقع الاستلام:', style: TextStyle(fontWeight: FontWeight.bold)),
-          SizedBox(width: 16),
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildPickupLocationButton(
-                    'من الزبون',
-                    shipment.selectedPickupLocation == 'من عنوان الزبون',
-                    () => setState(() =>
-                        shipment.selectedPickupLocation = 'من عنوان الزبون'),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: _buildPickupLocationButton(
-                    'مع السائق',
-                    shipment.selectedPickupLocation == 'مع السائق',
-                    () => setState(
-                        () => shipment.selectedPickupLocation = 'مع السائق'),
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: _buildPickupLocationButton(
-                    'في الفرع',
-                    shipment.selectedPickupLocation == 'في الفرع',
-                    () => setState(
-                        () => shipment.selectedPickupLocation = 'في الفرع'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (shipment.selectedPickupLocation == 'مع السائق') ...[
-            SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: SearchableDropdown<Driver>(
-                label: 'السائق',
-                value: appProvider.selectedDriver,
-                items: appProvider.drivers,
-                onChanged: (value) =>
-                    setState(() => appProvider.selectedDriver = value),
-                searchController: driverSearchController,
-                hint: 'اختر السائق',
-              ),
-            ),
-          ],
-        ],
-      );
-    }
-  }
-
-  Widget _buildPickupLocationButton(
-      String text, bool isSelected, VoidCallback onTap) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-            vertical: isMobile ? 3 : 8, horizontal: isMobile ? 4 : 12),
-        decoration: BoxDecoration(
-          color: isSelected ? primary : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected ? primary : Colors.grey.shade300,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black87,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: isMobile ? 8 : 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddShipmentButton() {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _addNewShipment,
-        icon: Icon(Icons.add, size: isMobile ? 14 : 20),
-        label: Text(
-          'إضافة شحنة جديدة',
-          style: TextStyle(fontSize: isMobile ? 10 : 16),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(
-            vertical: isMobile ? 6 : 16,
-            horizontal: isMobile ? 4 : 16,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCitySearchField(ShipmentData shipment, AppProvider appProvider) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
     return Column(
       children: [
-        Focus(
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent) {
-              if (shipment.showCitySuggestions &&
-                  shipment.filteredCities.isNotEmpty) {
-                if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                  setState(() {
-                    shipment.selectedCityIndex =
-                        (shipment.selectedCityIndex + 1) %
-                            shipment.filteredCities.length;
-                  });
-                  return KeyEventResult.handled;
-                } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                  setState(() {
-                    shipment.selectedCityIndex = shipment.selectedCityIndex <= 0
-                        ? shipment.filteredCities.length - 1
-                        : shipment.selectedCityIndex - 1;
-                  });
-                  return KeyEventResult.handled;
-                } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-                  if (shipment.selectedCityIndex >= 0 &&
-                      shipment.selectedCityIndex <
-                          shipment.filteredCities.length) {
-                    _selectCity(
-                        shipment,
-                        shipment.filteredCities[shipment.selectedCityIndex],
-                        appProvider);
-                  }
-                  return KeyEventResult.handled;
-                } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-                  setState(() {
-                    shipment.showCitySuggestions = false;
-                    shipment.selectedCityIndex = -1;
-                  });
-                  return KeyEventResult.handled;
-                }
-              }
-            }
-            return KeyEventResult.ignored;
-          },
-          child: TextFormField(
-            controller: shipment.citySearchController,
-            focusNode: shipment.citySearchFocus,
-            validator: (value) {
-              print(appProvider.citiesAndPlacesNames);
-              if (value!.isEmpty) {
-                return 'الرجاء ادخال المدينة';
-              }
-              if (!appProvider.citiesAndPlacesNames.contains(value)) {
-                return 'الرجاء ادخال المدينة بشكل صحيح';
-              }
-              return null;
-            },
-            decoration: InputDecoration(
-              hintText: 'ابحث عن المدينة',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12, vertical: isMobile ? 8 : 12),
-              suffixIcon: Icon(Icons.search, size: isMobile ? 14 : 16),
-              isDense: false,
-              hintStyle: TextStyle(fontSize: isMobile ? 12 : 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.recipientNameController,
+                focusNode: shipment.recipientNameFocus,
+                hint: 'اسم المستلم الثلاثي',
+                label: 'اسم المستلم',
+                icon: Icons.person_outline,
+                nextFocus: shipment.phoneFocus,
+              ),
             ),
-            textAlign: TextAlign.right,
-            textInputAction: TextInputAction.next,
-            style: TextStyle(fontSize: isMobile ? 12 : 14),
-            onChanged: (value) {
-              setState(() {
-                shipment.selectedCityPlace = value;
-                if (value.isNotEmpty) {
-                  shipment.selectedCity = value.split(" ")[0];
-                  // Filter cities based on search
-                  shipment.filteredCities = appProvider.citiesAndPlacesNames
-                      .where((city) =>
-                          city.toLowerCase().contains(value.toLowerCase()))
-                      .take(5)
-                      .toList();
-                  shipment.showCitySuggestions =
-                      shipment.filteredCities.isNotEmpty;
-                  shipment.selectedCityIndex = -1;
-                } else {
-                  shipment.showCitySuggestions = false;
-                  shipment.selectedCityIndex = -1;
-                }
-              });
-              calculateDeliveryCost(appProvider);
-            },
-            onFieldSubmitted: (value) {
-              if (shipment.selectedCityIndex >= 0 &&
-                  shipment.selectedCityIndex < shipment.filteredCities.length) {
-                _selectCity(
-                    shipment,
-                    shipment.filteredCities[shipment.selectedCityIndex],
-                    appProvider);
-              } else {
-                // If no city is selected, move to next field
-                shipment.addressDescFocus.requestFocus();
-              }
-            },
-            onTap: () {
-              setState(() {
-                if (shipment.citySearchController.text.isNotEmpty) {
-                  shipment.showCitySuggestions =
-                      shipment.filteredCities.isNotEmpty;
-                }
-              });
-            },
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.phoneController,
+                focusNode: shipment.phoneFocus,
+                hint: '07XXXXXXXX',
+                label: 'رقم الجوال',
+                icon: Icons.phone_android_outlined,
+                keyboardType: TextInputType.phone,
+                nextFocus: shipment.citySearchFocus,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCitySearchField(
+                  shipment, Provider.of<AppProvider>(context, listen: false)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildRegionDropdown(
+                  shipment, Provider.of<AppProvider>(context, listen: false)),
+            ),
+          ],
         ),
-        if (shipment.showCitySuggestions) ...[
-          Container(
-            margin: EdgeInsets.only(top: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: Offset(0, 1),
-                ),
-              ],
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: _buildModernTextField(
+                controller: shipment.addressDescController,
+                focusNode: shipment.addressDescFocus,
+                hint: 'وصف العنوان التفصيلي (الشارع، البناية، رقم الشقة)',
+                label: 'العنوان بالتفصيل',
+                icon: Icons.location_on_outlined,
+                nextFocus: shipment.codAmountFocus,
+              ),
             ),
-            child: Column(
-              children: shipment.filteredCities.asMap().entries.map((entry) {
-                int index = entry.key;
-                String city = entry.value;
-                bool isSelected = index == shipment.selectedCityIndex;
-
-                return Container(
-                  color: isSelected
-                      ? primary.withOpacity(0.1)
-                      : Colors.transparent,
-                  child: ListTile(
-                    title: Text(
-                      city,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        color: isSelected ? primary : Colors.black,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: isMobile ? 9 : 14,
-                      ),
-                    ),
-                    onTap: () => _selectCity(shipment, city, appProvider),
-                  ),
-                );
-              }).toList(),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.codAmountController,
+                focusNode: shipment.codAmountFocus,
+                hint: '0.00',
+                label: 'المبلغ COD',
+                icon: Icons.payments_outlined,
+                keyboardType: TextInputType.number,
+                nextFocus: shipment.deliveryCostFocus,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.deliveryCostController,
+                focusNode: shipment.deliveryCostFocus,
+                hint: '0.00',
+                label: 'التوصيل',
+                icon: Icons.local_shipping_outlined,
+                keyboardType: TextInputType.number,
+                nextFocus: shipment.weightFocus,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildModernTextField(
+                controller: shipment.weightController,
+                focusNode: shipment.weightFocus,
+                hint: '1.0',
+                label: 'الوزن',
+                icon: Icons.fitness_center_outlined,
+                keyboardType: TextInputType.number,
+                nextFocus: shipment.contentFocus,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: _buildModernTextField(
+                controller: shipment.contentController,
+                focusNode: shipment.contentFocus,
+                hint: 'ماذا يوجد داخل الشحنة؟',
+                label: 'المحتويات',
+                icon: Icons.inventory_2_outlined,
+                nextFocus: shipment.notesFocus,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: _buildModernTextField(
+                controller: shipment.notesController,
+                focusNode: shipment.notesFocus,
+                hint: 'ملاحظات خاصة بالتسليم...',
+                label: 'ملاحظات إضافية',
+                icon: Icons.note_add_outlined,
+              ),
+            ),
+          ],
+        ),
       ],
     );
-  }
-
-  void _selectCity(
-      ShipmentData shipment, String city, AppProvider appProvider) {
-    setState(() {
-      shipment.citySearchController.text = city;
-      shipment.selectedCityPlace = city;
-      shipment.selectedCity = city.split(" ")[0];
-      shipment.showCitySuggestions = false;
-      shipment.selectedCityIndex = -1;
-    });
-    calculateDeliveryCost(appProvider);
   }
 
   Widget _buildSenderSection(AppProvider appProvider) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 6 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.person, color: primary, size: isMobile ? 14 : 20),
-                SizedBox(width: 4),
-                Text(
-                  'معلومات المرسل',
-                  style: TextStyle(
-                      fontSize: isMobile ? 10 : 16,
-                      fontWeight: FontWeight.bold),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+                child: const Icon(Icons.store_outlined, color: primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'معلومات المرسل (المتجر)',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SearchableDropdown<Customer>(
+            label: 'اختر المتجر أو الزبون',
+            value: appProvider.selectedCustomer,
+            items: appProvider.customers,
+            onChanged: (value) {
+              setState(() => appProvider.selectedCustomer = value);
+              calculateDeliveryCost(appProvider);
+            },
+            searchController: customerSearchController,
+            hint: 'ابحث عن اسم المتجر أو رقم الهاتـف...',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomActions(AppProvider appProvider) {
+    bool isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          isMobile
+              ? Column(
+                  children: [
+                    _buildModernRadio(
+                      title: 'حفظ وطباعة البوليصة',
+                      value: 'save_and_print',
+                    ),
+                    _buildModernRadio(
+                      title: 'حفظ وإغلاق النموذج',
+                      value: 'save_and_close',
+                    ),
+                    _buildModernRadio(
+                      title: 'حفظ ومتابعة الإضافة',
+                      value: 'save_and_continue',
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernRadio(
+                        title: 'حفظ وطباعة',
+                        value: 'save_and_print',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernRadio(
+                        title: 'حفظ وإغلاق',
+                        value: 'save_and_close',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernRadio(
+                        title: 'حفظ ومتابعة',
+                        value: 'save_and_continue',
+                      ),
+                    ),
+                  ],
+                ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 60,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : () => _handleSubmit(appProvider),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'تأكيد وإرسال الطلبات الآن',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
             ),
-            SizedBox(height: isMobile ? 6 : 16),
-            SearchableDropdown<Customer>(
-              label: 'المتجر/الزبون',
-              value: appProvider.selectedCustomer,
-              items: appProvider.customers,
-              onChanged: (value) {
-                setState(() => appProvider.selectedCustomer = value);
-                calculateDeliveryCost(appProvider);
-              },
-              searchController: customerSearchController,
-              hint: 'اختر المتجر/الزبون',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernRadio({required String title, required String value}) {
+    bool isSelected = _submitAction == value;
+    return InkWell(
+      onTap: () => setState(() => _submitAction = value),
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? primary : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+          color: isSelected ? primary.withOpacity(0.05) : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? primary : Colors.grey,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: primary,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? primary : Colors.black87,
+              ),
             ),
           ],
         ),
@@ -1627,174 +1511,28 @@ class AddOrderFormState extends State<AddOrderForm> {
     );
   }
 
-  Widget _buildSubmitButton(AppProvider appProvider) {
-    bool isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: primary,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            padding: EdgeInsets.symmetric(vertical: isMobile ? 8 : 16),
-          ),
-          onPressed: _isLoading ? null : () => _handleSubmit(appProvider),
-          child: Container(
-            width: double.infinity,
-            alignment: Alignment.center,
-            child: _isLoading
-                ? const CircularProgressIndicator()
-                : Text(
-                    'إرسال',
-                    style: TextStyle(fontSize: isMobile ? 12 : 16),
-                  ),
-          ),
-        ),
-        SizedBox(height: isMobile ? 12 : 16),
-        // Radio buttons
-        if (isMobile)
-          // Mobile layout - vertical radio buttons
-          Column(
-            children: [
-              ListTile(
-                title: Text('حفظ وطباعة', style: TextStyle(fontSize: 12)),
-                leading: Radio<String>(
-                  value: 'save_and_print',
-                  groupValue: _submitAction,
-                  onChanged: (String? value) {
-                    setState(() => _submitAction = value!);
-                  },
-                  activeColor: primary,
-                ),
-              ),
-              ListTile(
-                title: Text('حفظ وإغلاق', style: TextStyle(fontSize: 12)),
-                leading: Radio<String>(
-                  value: 'save_and_close',
-                  groupValue: _submitAction,
-                  onChanged: (String? value) {
-                    setState(() => _submitAction = value!);
-                  },
-                  activeColor: primary,
-                ),
-              ),
-              ListTile(
-                title:
-                    Text('حفظ ومتابعة الإضافة', style: TextStyle(fontSize: 12)),
-                leading: Radio<String>(
-                  value: 'save_and_continue',
-                  groupValue: _submitAction,
-                  onChanged: (String? value) {
-                    setState(() => _submitAction = value!);
-                  },
-                  activeColor: primary,
-                ),
-              ),
-            ],
-          )
-        else
-          // Desktop layout - horizontal radio buttons
-          Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: ListTile(
-                      title: Text('حفظ وطباعة'),
-                      leading: Radio<String>(
-                        value: 'save_and_print',
-                        groupValue: _submitAction,
-                        onChanged: (String? value) {
-                          setState(() => _submitAction = value!);
-                        },
-                        activeColor: primary,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListTile(
-                      title: Text('حفظ وإغلاق'),
-                      leading: Radio<String>(
-                        value: 'save_and_close',
-                        groupValue: _submitAction,
-                        onChanged: (String? value) {
-                          setState(() => _submitAction = value!);
-                        },
-                        activeColor: primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              ListTile(
-                title: Text('حفظ ومتابعة الإضافة'),
-                leading: Radio<String>(
-                  value: 'save_and_continue',
-                  groupValue: _submitAction,
-                  onChanged: (String? value) {
-                    setState(() => _submitAction = value!);
-                  },
-                  activeColor: primary,
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  void calculateDeliveryCost(AppProvider appProvider) {
-    if (_currentShipment.selectedCity != null &&
-        appProvider.selectedCustomer != null) {
-      // Find customer-specific shipping route
-
-      UserShippingRoute? customerRoute =
-          appProvider.userShippingRoutes.firstWhere(
-        (route) => route.userId == appProvider.selectedCustomer!.userid,
-        orElse: () => appProvider.userShippingRoutes
-            .firstWhere((route) => route.userId == 'main'),
-      );
-
-      // Find matching route for selected city
-      ShippingRoute? matchingRoute = customerRoute.shippingRoute.firstWhere(
-        (route) =>
-            route.to == _currentShipment.selectedCity &&
-            route.from == appProvider.selectedCustomer!.city,
-        orElse: () {
-          // If no customer-specific route found, try main route
-          UserShippingRoute mainRoute = appProvider.userShippingRoutes
-              .firstWhere((route) => route.userId == 'main');
-          return mainRoute.shippingRoute.firstWhere(
-              (route) =>
-                  route.to == _currentShipment.selectedCity &&
-                  route.from == appProvider.selectedCustomer!.city, orElse: () {
-            UserShippingRoute mainRoute = appProvider.userShippingRoutes
-                .firstWhere((route) => route.userId == 'main');
-            return mainRoute.shippingRoute.firstWhere(
-                (route) =>
-                    route.to == appProvider.selectedCustomer!.city &&
-                    route.from == _currentShipment.selectedCity, orElse: () {
-              return ShippingRoute(
-                from: '',
-                to: '',
-                deliveryPrice: 0,
-                returnPrice: 0,
-                returnBeforeDeliveryPrice: 0,
-              );
-            });
-          });
-        },
-      );
-
-      if (matchingRoute.deliveryPrice > 0) {
+  void calculateDeliveryCost(AppProvider appProvider, {ShipmentData? specificShipment}) {
+    if (appProvider.selectedCustomer == null) return;
+    // تحديد الطلبات التي سنحسب تكلفتها (طلب واحد أو الجميع)
+    List<ShipmentData> targets = specificShipment != null ? [specificShipment] : shipments;
+    for (var shipment in targets) {
+      String? cityName = shipment.selectedCity;
+      if (cityName == null || cityName.isEmpty) continue;
+      try {
+        // جلب السعر عبر المحرك المركزي
+        double price = appProvider.calculateDeliveryCostForCity(
+          cityName, 
+          appProvider.selectedCustomer!.userid
+        );
         setState(() {
-          _currentShipment.deliveryCostController.text =
-              matchingRoute.deliveryPrice.toString();
+          // تحديث السعر في الطلب المحدد
+          shipment.deliveryCostController.text = price > 0 ? price.toString() : "";
         });
+      } catch (e) {
+        print("Error in calculateDeliveryCost: $e");
       }
     }
   }
+
 }

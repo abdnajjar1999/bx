@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:provider/provider.dart';
 import '../../models/supply_order.dart';
+import '../../models/City.dart';
 import '../../shared/appProvider.dart';
 
 class AddOrderFormOne extends StatefulWidget {
@@ -72,6 +73,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
   // Form State
   String? selectedCity;
+  String? selectedRegion;
   String? selectedCityPlace;
 
   String selectedPaymentMethod = 'COD';
@@ -138,10 +140,15 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
       // Set dropdown values
       setState(() {
-        selectedCity = shipment.city;
-        if (appProvider.citiesAndPlacesNames.contains(shipment.city)) {
-          selectedCityPlace = shipment.city;
+        if (shipment.city.contains(' ')) {
+          int spaceIndex = shipment.city.lastIndexOf(' ');
+          selectedCity = shipment.city.substring(0, spaceIndex);
+          selectedRegion = shipment.city.substring(spaceIndex + 1);
+        } else {
+          selectedCity = shipment.city;
+          selectedRegion = null;
         }
+        selectedCityPlace = shipment.city;
         if (paymentMethods.contains(shipment.paymentMethod)) {
           selectedPaymentMethod = shipment.paymentMethod;
         }
@@ -417,9 +424,10 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
   void _cheakForDriver(AppProvider appProvider) {
     if (selectedCity != null) {
-      final city = selectedCity!;
+      // Use combined name or city for driver search
+      final cityForDriver = selectedCityPlace ?? selectedCity!;
       List<Driver> driversFromCity = appProvider.drivers
-          .where((driver) => driver.cities.contains(city))
+          .where((driver) => driver.cities.contains(cityForDriver))
           .toList();
       if (driversFromCity.isNotEmpty) {
         setState(() {
@@ -867,14 +875,16 @@ class AddOrderFormState extends State<AddOrderFormOne> {
         Row(
           children: [
             Expanded(
+              flex: 2,
               child: SearchableDropdown<String>(
-                label: 'عنوان المستلم',
-                value: selectedCityPlace,
-                items: appProvider.citiesAndPlacesNames,
+                label: 'المدينة',
+                value: selectedCity,
+                items: appProvider.cities,
                 onChanged: (value) {
                   setState(() {
-                    selectedCityPlace = value;
                     selectedCity = value;
+                    selectedRegion = null; // Clear region when city changes
+                    selectedCityPlace = value;
                   });
 
                   calculateDeliveryCost(appProvider);
@@ -884,8 +894,33 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 hint: 'اختر المدينة',
               ),
             ),
+            SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: SearchableDropdown<String>(
+                label: 'المنطقة',
+                value: selectedRegion,
+                items: selectedCity != null
+                    ? appProvider.citiesAndPlaces
+                        .firstWhere((c) => c.name == selectedCity,
+                            orElse: () =>
+                                City(name: selectedCity!, places: []))
+                        .places
+                    : [],
+                onChanged: (value) {
+                  setState(() {
+                    selectedRegion = value;
+                    selectedCityPlace = (selectedCity ?? "") + " " + (value ?? "");
+                  });
+                  _cheakForDriver(appProvider);
+                },
+                searchController: TextEditingController(), // Separate controller if needed
+                hint: 'اختر المنطقة',
+              ),
+            ),
             SizedBox(width: 16),
             Expanded(
+              flex: 3,
               child: _buildTextField(
                   controller: addressDescController, label: 'وصف العنوان'),
             ),

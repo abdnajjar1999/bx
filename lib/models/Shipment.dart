@@ -22,7 +22,7 @@ class ShipmentLog {
 
   factory ShipmentLog.fromMap(Map<String, dynamic> map) {
     return ShipmentLog(
-      date: DateTime.parse(map['date']),
+      date: Shipment._parseDate(map['date']),
       text: map['text'] ?? '',
       status: map['status'],
       userName: map['userName'],
@@ -182,8 +182,10 @@ class Shipment {
   final bool isAddressed;
 
   // New fields for Collection Logic
-  final bool isDeliveryFeeOnRecipient; // المستلم سيدفع سعر التوصيل (true by default usually)
-  final bool isCompanyDeliveryFeePaid; // واصل الشركة (true if paid to company, false otherwise)
+  final bool
+      isDeliveryFeeOnRecipient; // المستلم سيدفع سعر التوصيل (true by default usually)
+  final bool
+      isCompanyDeliveryFeePaid; // واصل الشركة (true if paid to company, false otherwise)
   final bool isPayToRecipient; // الدفع للمستلم (used in Exchange/Pick-up)
 
   Shipment({
@@ -245,7 +247,7 @@ class Shipment {
           ? Shelf.fromMap(Map<String, dynamic>.from(map['shelf'] as Map))
           : null,
       returnOrderDate: map['returnOrderDate'] != null
-          ? DateTime.parse(map['returnOrderDate'])
+          ? _parseDate(map['returnOrderDate'])
           : null,
       customerlocation: map['customerlocation'],
       userphone: map['userphone'] ?? '',
@@ -283,18 +285,15 @@ class Shipment {
       notes: map['notes'] ?? '',
       parcelCount: map['parcelCount'] ?? 0,
       status: map['status'] ?? '',
-      createdAt:
-          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      lastUpdated: DateTime.parse(
-          map['lastUpdated'] ?? DateTime.now().toIso8601String()),
-      deliveryDate: map['deliveryDate'] != null
-          ? DateTime.parse(map['deliveryDate'])
-          : null,
+      createdAt: _parseDate(map['createdAt']),
+      lastUpdated: _parseDate(map['lastUpdated']),
+      deliveryDate:
+          map['deliveryDate'] != null ? _parseDate(map['deliveryDate']) : null,
       expectedDeliveryDate: map['expectedDeliveryDate'] != null
-          ? DateTime.parse(map['expectedDeliveryDate'])
+          ? _parseDate(map['expectedDeliveryDate'])
           : null,
       postponementDate: map['postponementDate'] != null
-          ? DateTime.parse(map['postponementDate'])
+          ? _parseDate(map['postponementDate'])
           : null,
       cashPossession: CashPossession.values.firstWhere(
         (e) =>
@@ -329,8 +328,8 @@ class Shipment {
 
   Map<String, dynamic> toMap() {
     return {
-      'shelf': shelf,
-      'returnOrderDate': returnOrderDate,
+      'shelf': shelf?.toMap(),
+      'returnOrderDate': returnOrderDate?.toIso8601String(),
       'customerlocation': customerlocation,
       'userphone': userphone,
       'orderId': orderId,
@@ -487,71 +486,65 @@ class Shipment {
       otp: otp ?? this.otp,
       isSentToFaotara: isSentToFaotara ?? this.isSentToFaotara,
       isAddressed: isAddressed ?? this.isAddressed,
-      isDeliveryFeeOnRecipient: isDeliveryFeeOnRecipient ?? this.isDeliveryFeeOnRecipient,
-      isCompanyDeliveryFeePaid: isCompanyDeliveryFeePaid ?? this.isCompanyDeliveryFeePaid,
+      isDeliveryFeeOnRecipient:
+          isDeliveryFeeOnRecipient ?? this.isDeliveryFeeOnRecipient,
+      isCompanyDeliveryFeePaid:
+          isCompanyDeliveryFeePaid ?? this.isCompanyDeliveryFeePaid,
       isPayToRecipient: isPayToRecipient ?? this.isPayToRecipient,
     );
   }
 
-double get driverCollection {
-  double collection = 0.0;
-  
-  if (status == 'تم إرجاعها') {
-    return 0.0;
-  }
+  double get driverCollection {
+    double collection = 0.0;
 
-  if (paymentMethod == 'مدفوعة مسبقا') {
-    if (isDeliveryFeeOnRecipient) {
-      if (!isCompanyDeliveryFeePaid) {
-        collection = deliveryCost;
+    if (status == 'تم إرجاعها') {
+      return 0.0;
+    }
+
+    if (paymentMethod == 'مدفوعة مسبقا') {
+      if (isDeliveryFeeOnRecipient) {
+        if (!isCompanyDeliveryFeePaid) {
+          collection = deliveryCost;
+        }
+      }
+    } else if (paymentMethod == 'COD') {
+      collection = codAmount;
+    } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
+      if (!isPayToRecipient) {
+        // التحصيل من المستلم
+        collection = codAmount;
       }
     }
-  } else if (paymentMethod == 'COD') {
-    collection = codAmount;
-  } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
-    if (!isPayToRecipient) { // التحصيل من المستلم
-      collection = codAmount;
-    }
+
+    return collection;
   }
 
-  return collection;
-}
+  double get payableToCustomer {
+    double payable = 0.0;
 
-double get payableToCustomer {
-  double payable = 0.0;
-  
-  
-      if (status == "تم إرجاعها") {
-        if (getMoneyFromUserPalance == true) {
-          payable = -deliveryCost ?? 0.0;
-        }
-        return payable;
-      } 
- 
-
-  if (paymentMethod == 'مدفوعة مسبقا') {
-    // Both case: Not COD amount paid to customer since prepaid.
-    // If Shipper pays delivery fee as cash to branch, 'isCompanyDeliveryFeePaid' = true, so no deduction
-    // If Shipper pays delivery fee from balance, 'isCompanyDeliveryFeePaid' = false, so we deduct
-    if (!isDeliveryFeeOnRecipient && !isCompanyDeliveryFeePaid) {
-      payable = -deliveryCost;
+    if (status == "تم إرجاعها") {
+      if (getMoneyFromUserPalance == true) {
+        payable = -deliveryCost;
+      }
+      return payable;
     }
-  } else if (paymentMethod == 'COD') {
-    payable = codAmount - deliveryCost;
-  } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
-    if (isPayToRecipient) {
-      // الدفع للمستلم -> customer is paying out of their balance + delivery cost
-      payable = -codAmount - deliveryCost;
-    } else {
-      // التحصيل من المستلم
+
+    if (paymentMethod == 'مدفوعة مسبقا') {
+      if (!isDeliveryFeeOnRecipient && !isCompanyDeliveryFeePaid) {
+        payable = -deliveryCost;
+      }
+    } else if (paymentMethod == 'COD') {
       payable = codAmount - deliveryCost;
+    } else if (paymentMethod == 'تبديل' || paymentMethod == 'إحضار') {
+      if (isPayToRecipient) {
+        payable = -codAmount - deliveryCost;
+      } else {
+        payable = codAmount - deliveryCost;
+      }
     }
+
+    return payable;
   }
-
-  return payable;
-}
-
-
 
   static List<Shipment> getShipmentsWithDriverPrice(
       List<Shipment> shipments, List<ShippingRoute> driverShippingRoute) {
@@ -573,9 +566,21 @@ double get payableToCustomer {
     return shipmentsWithDriverPrice;
   }
 
+  String get whatsappNumber {
+    return phoneNumber.replaceFirst("07", "+9627");
+  }
 
-
-
-
-
+  static DateTime _parseDate(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now();
+  }
 }

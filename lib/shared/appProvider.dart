@@ -890,7 +890,7 @@ class AppProvider extends ChangeNotifier {
         Map<String, dynamic> customer =
             functionCall.args['customer'] as Map<String, dynamic>;
         double deliveryCost = calculateDeliveryCostForCity(
-            functionCall.args['city'].toString().split(' ')[0],
+            functionCall.args['city'].toString(),
             customer['userId']);
         double? deliveryCostFromFunction =
             functionCall.args["deliveryCost"] as double?;
