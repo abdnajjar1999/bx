@@ -69,4 +69,28 @@ class Utilities {
 
     return (totalCollections: totalCollections, totalPrice: totalPrice);
   }
+
+  static String normalizeArabic(String text) {
+    if (text.isEmpty) return text;
+    // Replace multiple spaces/tabs/newlines with a single space and trim
+    String normalized = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // Normalize Alef
+    normalized = normalized.replaceAll(RegExp(r'[أإآ]'), 'ا');
+
+    // Normalize Taa Marbuta
+    normalized = normalized.replaceAll('ة', 'ه');
+
+    // Normalize Ya/Alef Maqsura
+    normalized = normalized.replaceAll('ى', 'ي');
+
+    // Normalize Hamza
+    normalized = normalized.replaceAll('ؤ', 'و');
+    normalized = normalized.replaceAll('ئ', 'ي');
+
+    // Remove Harakat (Diacritics)
+    normalized = normalized.replaceAll(RegExp(r'[\u064B-\u0652]'), '');
+
+    return normalized.toLowerCase();
+  }
 }

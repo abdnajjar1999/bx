@@ -343,9 +343,14 @@ class _ShipmentDetailsState extends State<ShipmentDetails>
                 flex: 1,
                 child: Column(
                   children: [
-                    _barcodeWidget(widget.shipment?.orderId ?? ''),
+                    _barcodeWidget(widget.shipment?.orderId ?? '', 'رقم الطرد'),
                     const SizedBox(height: 20),
-                    _barcodeWidget(widget.shipment?.trackingNumber ?? ''),
+                    if (widget.shipment?.trackingNumber != null &&
+                        widget.shipment!.trackingNumber.isNotEmpty &&
+                        widget.shipment!.trackingNumber !=
+                            widget.shipment!.orderId)
+                      _barcodeWidget(
+                          widget.shipment!.trackingNumber, 'رقم الإرسالية'),
                   ],
                 ),
               ),
@@ -378,20 +383,33 @@ class _ShipmentDetailsState extends State<ShipmentDetails>
     );
   }
 
-  Widget _barcodeWidget(String value) {
-    return Container(
-      height: 80,
-      width: 200,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: barcode.SfBarcodeGenerator(
-        value: value.isEmpty ? 'N/A' : value,
-        symbology: barcode.Code128(),
-        showValue: true,
-      ),
+  Widget _barcodeWidget(String value, String label) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 80,
+          width: 200,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: barcode.SfBarcodeGenerator(
+            value: value.isEmpty ? 'N/A' : value,
+            symbology: barcode.Code128(),
+            showValue: true,
+          ),
+        ),
+      ],
     );
   }
 

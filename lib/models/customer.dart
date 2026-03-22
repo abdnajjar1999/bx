@@ -53,6 +53,7 @@ class Customer {
   bool isCommercialVerified;
   bool isFaceVerified;
   bool isPhoneVerified;
+  String? nationalId;
 
   // Existing booleans
   bool? allowAdminModification;
@@ -80,7 +81,7 @@ class Customer {
     this.longitude = 0.0,
     this.savedAddresses = const [],
     this.status = 'معلق',
-    this.userRating = 4.8,
+    this.userRating = 0.0,
     this.ratingCount = 0,
     this.loyaltyPoints = 0,
     DateTime? createdAt,
@@ -89,6 +90,7 @@ class Customer {
     this.isCommercialVerified = false,
     this.isFaceVerified = false,
     this.isPhoneVerified = false,
+    this.nationalId,
 
     // Existing optional booleans
     this.allowAdminModification,
@@ -117,12 +119,13 @@ class Customer {
           json['phoneNumber'] ??
           '', // Default to empty string if null
       address: json['address'] ?? json['address1'] ?? '',
-      city: json['city'], // Can be null
+      city: json['city'] ?? '', // Can be null in DB, but User1 defaults to empty string
       profileImage: json['profileImage'] ?? '',
       cashBalance: (json['cashBalance'] ?? 0.0).toDouble(),
 
       // New fields extraction
-      promotionalName: json['promotionalName'],
+      promotionalName: json['promotionalName'] ?? '',
+      nationalId: json['nationalId'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),
       customerType: CustomerType.values.firstWhere(
@@ -189,6 +192,7 @@ class Customer {
         'userRating': userRating,
         'ratingCount': ratingCount,
         'loyaltyPoints': loyaltyPoints,
+        'nationalId': nationalId,
 
         // Existing fields
         'allowAdminModification': allowAdminModification,
@@ -224,6 +228,7 @@ class Customer {
     double? userRating,
     int? ratingCount,
     double? loyaltyPoints,
+    String? nationalId,
     bool? allowAdminModification,
     bool? allowOtherAdminsModification,
     bool? showPriceInApp,
@@ -256,6 +261,7 @@ class Customer {
       userRating: userRating ?? this.userRating,
       ratingCount: ratingCount ?? this.ratingCount,
       loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
+      nationalId: nationalId ?? this.nationalId,
       allowAdminModification:
           allowAdminModification ?? this.allowAdminModification,
       allowOtherAdminsModification:

@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 
 // import '../aiAgent/tools.dart';
 import '../main.dart';
@@ -196,20 +197,50 @@ class AppProvider extends ChangeNotifier {
   getPriceCalculator({bool isDriver = false}) async {
     firebaseHelper.priceCalculatorStream(isDriver).listen((event) {
       if (isDriver) {
+        final oldSelectedId = selectedDriverShippingRoute?.userId;
         driverShippingRoutes = event.docs
             .map((e) => UserShippingRoute.fromJson(e.data()))
             .toList();
-        selectedDriverShippingRoute = driverShippingRoutes.isNotEmpty
-            ? driverShippingRoutes.where((e) => e.userId == 'main').first
-            : null;
+
+        if (driverShippingRoutes.isNotEmpty) {
+          final sameDriverRoute = driverShippingRoutes
+              .where((e) => e.userId == oldSelectedId)
+              .firstOrNull;
+          if (sameDriverRoute != null) {
+            selectedDriverShippingRoute = sameDriverRoute;
+          } else {
+            selectedDriverShippingRoute = driverShippingRoutes
+                    .where((e) => e.userId == 'main')
+                    .firstOrNull ??
+                driverShippingRoutes.first;
+          }
+        } else {
+          selectedDriverShippingRoute = null;
+        }
       } else {
         print("this is event ${event.docs}");
+        final oldSelectedId = selectedShippingRoute?.userId;
         userShippingRoutes = event.docs
             .map((e) => UserShippingRoute.fromJson(e.data()))
             .toList();
-        selectedShippingRoute = userShippingRoutes.isNotEmpty
-            ? userShippingRoutes.where((e) => e.userId == 'main').first
-            : null;
+
+        if (userShippingRoutes.isNotEmpty) {
+          // Try to keep the same user selected if possible
+          final sameUserRoute = userShippingRoutes
+              .where((e) => e.userId == oldSelectedId)
+              .firstOrNull;
+          if (sameUserRoute != null) {
+            selectedShippingRoute = sameUserRoute;
+          } else {
+            // Fallback to main if old selection is gone or was main anyway
+            selectedShippingRoute = userShippingRoutes
+                    .where((e) => e.userId == 'main')
+                    .firstOrNull ??
+                userShippingRoutes.first;
+          }
+        } else {
+          selectedShippingRoute = null;
+        }
       }
       notifyListeners();
     });
@@ -700,47 +731,151 @@ class AppProvider extends ChangeNotifier {
   }
 
   double calculateDeliveryCostForCity(String cityName, String userId) {
-    print("cityName: $cityName");
-    print("userId: $userId");
     if (cityName.isEmpty || userId.isEmpty) return 0;
+
+    String normalizedInput = Utilities.normalizeArabic(cityName);
+
+    // Identify parent city if the input is a sub-region or contains sub-region info
+    String? parentCity;
+    for (var city in citiesAndPlaces) {
+      String normCityName = Utilities.normalizeArabic(city.name);
+      if (normalizedInput.contains(normCityName)) {
+        parentCity = normCityName;
+        break;
+      }
+      for (var place in city.places) {
+        if (normalizedInput.contains(Utilities.normalizeArabic(place))) {
+          parentCity = normCityName;
+          break;
+        }
+      }
+      if (parentCity != null) break;
+    }
+
+    String cleanCityName = normalizedInput;
+    String? normParentCity = parentCity;
 
     // Find customer
     final customer = customers.where((c) => c.userid == userId).firstOrNull;
-    print("customer: $customer");
     if (customer == null) return 0;
-    print("customer: ${customer.city}");
 
-    // Find customer-specific shipping route
-    UserShippingRoute customerRoute = userShippingRoutes.firstWhere(
-      (route) => route.userId == userId,
-      orElse: () =>
-          userShippingRoutes.firstWhere((route) => route.userId == 'main'),
-    );
-    print("customerRoute: ${customerRoute.userId}");
-    // Find matching route for selected city
-    ShippingRoute matchingRoute = customerRoute.shippingRoute.firstWhere(
-        (route) => route.to == cityName && route.from == customer.city,
+    String? customerCity = customer.city != null
+        ? Utilities.normalizeArabic(customer.city!)
+        : null;
+
+    try {
+      // Find customer-specific shipping route or fallback to main
+      UserShippingRoute? customerRoute = userShippingRoutes.firstWhere(
+        (route) => route.userId == userId,
+        orElse: () => userShippingRoutes.firstWhere(
+          (route) => route.userId == 'main',
+          orElse: () => UserShippingRoute(userId: 'none', shippingRoute: []),
+        ),
+      );
+
+      if (customerRoute.shippingRoute.isEmpty) {
+        customerRoute = userShippingRoutes
+            .where((route) => route.userId == 'main')
+            .firstOrNull;
+      }
+
+      if (customerRoute == null || customerRoute.shippingRoute.isEmpty)
+        return 0;
+
+      // Find matching route for selected city
+      ShippingRoute? matchingRoute = customerRoute.shippingRoute.firstWhere(
+        (route) {
+          String routeTo = Utilities.normalizeArabic(route.to);
+          String routeFrom = Utilities.normalizeArabic(route.from);
+
+          bool toMatch = routeTo == cleanCityName ||
+              (normParentCity != null && routeTo == normParentCity);
+          bool fromMatch = customerCity != null && routeFrom == customerCity;
+
+          if (toMatch && fromMatch) return true;
+
+          // Inverse match check
+          bool inverseToMatch = routeFrom == cleanCityName ||
+              (normParentCity != null && routeFrom == normParentCity);
+          bool inverseFromMatch = customerCity != null && routeTo == customerCity;
+
+          return inverseToMatch && inverseFromMatch;
+        },
         orElse: () {
-      // If no customer-specific route found, try main route
-      UserShippingRoute mainRoute =
-          userShippingRoutes.firstWhere((route) => route.userId == 'main');
-      return mainRoute.shippingRoute.firstWhere(
-          (route) => route.to == cityName && route.from == customer.city,
-          orElse: () {
-        return mainRoute.shippingRoute.firstWhere(
-          (route) => route.to == customer.city && route.from == cityName,
-          orElse: () => ShippingRoute(
-            from: '',
-            to: '',
-            deliveryPrice: 0,
-            returnPrice: 0,
-            returnBeforeDeliveryPrice: 0,
-          ),
-        );
-      });
-    });
+          // If no direct match, try fuzzy matching as a fallback
+          try {
+            if (customerRoute!.shippingRoute.isEmpty) throw "Empty routes";
 
-    return matchingRoute.deliveryPrice;
+            int highestScore = 0;
+            int bestRouteIndex = -1;
+
+            for (int i = 0; i < customerRoute.shippingRoute.length; i++) {
+              var route = customerRoute.shippingRoute[i];
+              String routeTo = Utilities.normalizeArabic(route.to);
+              String routeFrom = Utilities.normalizeArabic(route.from);
+
+              int scoreTo = ratio(routeTo, cleanCityName);
+              int scoreFrom = ratio(routeFrom, cleanCityName);
+
+              if (normParentCity != null) {
+                int pScoreTo = ratio(routeTo, normParentCity);
+                int pScoreFrom = ratio(routeFrom, normParentCity);
+                scoreTo = scoreTo > pScoreTo ? scoreTo : pScoreTo;
+                scoreFrom = scoreFrom > pScoreFrom ? scoreFrom : pScoreFrom;
+              }
+
+              int currentMax = scoreTo > scoreFrom ? scoreTo : scoreFrom;
+
+              if (currentMax > highestScore) {
+                highestScore = currentMax;
+                bestRouteIndex = i;
+              }
+            }
+
+            if (highestScore > 80 && bestRouteIndex != -1) {
+              return customerRoute.shippingRoute[bestRouteIndex];
+            }
+          } catch (e) {
+            print("Fuzzy matching error: $e");
+          }
+
+          // Final Fallback: try main routes destination only
+          UserShippingRoute? mainRoute = userShippingRoutes
+              .where((route) => route.userId == 'main')
+              .firstOrNull;
+          if (mainRoute == null) {
+            return ShippingRoute(
+                from: '',
+                to: '',
+                deliveryPrice: 0,
+                returnPrice: 0,
+                returnBeforeDeliveryPrice: 0);
+          }
+
+          return mainRoute.shippingRoute.firstWhere(
+            (route) {
+              String rtTo = Utilities.normalizeArabic(route.to);
+              String rtFrom = Utilities.normalizeArabic(route.from);
+              return rtTo == cleanCityName ||
+                  rtFrom == cleanCityName ||
+                  (normParentCity != null &&
+                      (rtTo == normParentCity || rtFrom == normParentCity));
+            },
+            orElse: () => ShippingRoute(
+                from: '',
+                to: '',
+                deliveryPrice: 0,
+                returnPrice: 0,
+                returnBeforeDeliveryPrice: 0),
+          );
+        },
+      );
+
+      return matchingRoute.deliveryPrice;
+    } catch (e) {
+      print("Error calculating cost: $e");
+      return 0;
+    }
   }
 
   // //ai agent__________________________________________________________________________________________

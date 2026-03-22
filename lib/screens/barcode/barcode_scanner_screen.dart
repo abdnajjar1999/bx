@@ -44,28 +44,70 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
 
   void _showChangeStatusDialog() {
     final provider = context.read<ScannerProvider>();
+    final count = provider.selectedIds.length;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تغيير حالة الطلبات المحددة',
+        title: const Text('تأكيد الاستلام في الفرع',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            'في الفرع',
-          ]
-              .map((status) => ListTile(
-                    title: Text(status),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await provider.bulkUpdateStatus(status);
-                      _showSnackBar(
-                          'تم تحديث حالة ${provider.selectedIds.length} طلبات',
-                          Colors.green);
-                    },
-                  ))
-              .toList(),
-        ),
+        content: Text('هل أنت متأكد من استلام ($count) طلبات في الفرع؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('تراجع', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final appProvider = context.read<AppProvider>();
+              final userName =
+                  appProvider.currentUserEmployee?.username ?? "مجهول";
+              Navigator.pop(context);
+              await provider.bulkUpdateStatus('في الفرع', userName);
+              _showSnackBar('تم استلام $count طلبات بنجاح', Colors.green);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4F46E5),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('تأكيد الاستلام'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReceiveReturnsDialog() {
+    final provider = context.read<ScannerProvider>();
+    final count = provider.selectedIds.length;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد استلام المرتجعات',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('هل أنت متأكد من استلام ($count) طرود مرتجعة من السائق؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('تراجع', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final appProvider = context.read<AppProvider>();
+              final userName =
+                  appProvider.currentUserEmployee?.username ?? "مجهول";
+              Navigator.pop(context);
+              await provider.bulkReceiveReturns(userName);
+              _showSnackBar('تم استلام $count مرتجعات بنجاح', Colors.green);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade800,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('تأكيد الاستلام'),
+          ),
+        ],
       ),
     );
   }
@@ -101,8 +143,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                           const CircleAvatar(child: Icon(Icons.person_outline)),
                       title: Text(driver.username.toString()),
                       onTap: () async {
+                        final userName =
+                            appProvider.currentUserEmployee?.username ??
+                                "مجهول";
                         Navigator.pop(context);
-                        await scannerProvider.bulkAssignDriver(driver);
+                        await scannerProvider.bulkAssignDriver(
+                            driver, userName);
                         _showSnackBar(
                             'تم تعيين السائق للطلبات المختارة', Colors.green);
                       },
@@ -146,7 +192,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           const SizedBox(width: 8),
           _buildActionChip(
             '${selectedIds.length} محدد',
-            const Color(0xFFDC2626),
+            const Color(0xFF4F46E5),
           ),
           const SizedBox(width: 16),
         ],
@@ -228,7 +274,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             child: Icon(
               Icons.qr_code_scanner_rounded,
               size: 64,
-              color: const Color(0xFFDC2626).withOpacity(0.8),
+              color: const Color(0xFF4F46E5).withOpacity(0.8),
             ),
           ),
           const SizedBox(height: 32),
@@ -250,11 +296,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             const Column(
               children: [
                 CircularProgressIndicator(
-                    strokeWidth: 3, color: Color(0xFFDC2626)),
+                    strokeWidth: 3, color: Color(0xFF4F46E5)),
                 SizedBox(height: 16),
                 Text('جاري التحميل...',
                     style: TextStyle(
-                        color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+                        color: Color(0xFF4F46E5), fontWeight: FontWeight.bold)),
               ],
             )
           else if (lastScanned != null && lastScanned.isNotEmpty)
@@ -267,6 +313,43 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           const Text(
             'تحديث تلقائي للنظام',
             style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          // Manual Entry Field
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'أدخل الرقم يدوياً...',
+                hintStyle: const TextStyle(fontSize: 13),
+                prefixIcon:
+                    const Icon(Icons.edit_note, color: Color(0xFF4F46E5)),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF4F46E5), width: 2),
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  context.read<ScannerProvider>().addShipment(value.trim());
+                  // Optional: Clear the text field after submission
+                  // For simple usage, user can just delete.
+                  // If we want auto-clear, we need a controller.
+                  // If a user wants to submit multiple quickly, clearing is good.
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -292,7 +375,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFFDC2626)),
+                color: Color(0xFF4F46E5)),
           ),
         ],
       ),
@@ -356,7 +439,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             value: allSelected,
             onChanged: (val) =>
                 val == true ? provider.selectAll() : provider.deselectAll(),
-            activeColor: const Color(0xFFDC2626),
+            activeColor: const Color(0xFF4F46E5),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           ),
@@ -429,6 +512,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           DataColumn(label: Text('رقم الطلب')),
           DataColumn(label: Text('رقم التتبع')),
           DataColumn(label: Text('المستلم')),
+          DataColumn(label: Text('رقم الهاتف')),
+          DataColumn(label: Text('المنطقة')),
+          DataColumn(label: Text('سعر التوصيل')),
           DataColumn(label: Text('الحالة')),
           DataColumn(label: Text('الإجراءات')),
         ],
@@ -445,6 +531,9 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                   style: const TextStyle(fontWeight: FontWeight.bold))),
               DataCell(Text(shipment.trackingNumber)),
               DataCell(Text(shipment.recipientName)),
+              DataCell(Text(shipment.phoneNumber)),
+              DataCell(Text(shipment.city)),
+              DataCell(Text('${shipment.deliveryCost} د.أ')),
               DataCell(_buildStatusBadge(shipment.status)),
               DataCell(Row(
                 mainAxisSize: MainAxisSize.min,
@@ -521,11 +610,24 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           ),
           const SizedBox(width: 12),
           ElevatedButton.icon(
+            onPressed: _showReceiveReturnsDialog,
+            icon: const Icon(Icons.assignment_return_rounded),
+            label: const Text('استلام مرتجع'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade800,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
             onPressed: _showChangeStatusDialog,
             icon: const Icon(Icons.published_with_changes_rounded),
-            label: const Text('تغيير الحالة للكل'),
+            label: const Text('استلام في الفرع'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFDC2626),
+              backgroundColor: const Color(0xFF4F46E5),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               shape: RoundedRectangleBorder(

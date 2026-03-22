@@ -2107,11 +2107,10 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                           text: 'تغير الحاله',
                                           onPressed: () async {
                                             return showChangeStatusBottomSheet(
-                                              context: context,
+                                                context: context,
                                                 appProvider: appProvider,
-                                                selectedOrderIds: selectedOrderIds.toList()
-                                                )
-                                                ;
+                                                selectedOrderIds:
+                                                    selectedOrderIds.toList());
                                           },
                                           color: Colors.green,
                                           textColor: Colors.white,
@@ -2424,7 +2423,6 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
       );
     });
   }
-
 
   void _filterShipmentsByTab(int tabIndex) {
     setState(() {
@@ -3337,7 +3335,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           showChangeStatusBottomSheet(
-context: context,
+                            context: context,
                             shipment: order,
                             appProvider: appProvider,
                           );
@@ -3471,8 +3469,10 @@ class _ShipmentDataTableSource extends DataTableSource {
   final Function(String, bool) onCheckboxChanged;
   final Function(Shipment) onRowSelected;
   final Function(Shipment) onRowLongPressed;
-  final Function({required BuildContext context,Shipment? shipment, required AppProvider appProvider})
-      showFutureDetailsBottomSheet;
+  final Function(
+      {required BuildContext context,
+      Shipment? shipment,
+      required AppProvider appProvider}) showFutureDetailsBottomSheet;
   final AppProvider appProvider;
   final List<Map<String, dynamic>> columnConfigs;
 
@@ -3592,7 +3592,11 @@ class _ShipmentDataTableSource extends DataTableSource {
               cellWidget = Customtext(title: order.trackingNumber);
               break;
             case 'paymentMethod':
-              cellWidget = Customtext(title: order.paymentMethod);
+if(order.isCompanyDeliveryFeePaid){
+  cellWidget = Customtext(title: order.paymentMethod + "\n" "واصل bX" );
+}else{
+  cellWidget = Customtext(title: order.paymentMethod);
+}
               break;
             case 'collectionMethod':
               cellWidget = Customtext(title: order.collectionMethod);
@@ -3619,67 +3623,67 @@ class _ShipmentDataTableSource extends DataTableSource {
               cellWidget = Customtext(title: order.notes);
               break;
             case 'actions':
-             
-                cellWidget = PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.black87),
-                  tooltip: 'الإجراءات',
-                  onSelected: (value) {
-                    if (value == 'changeStatus') {
-                      showFutureDetailsBottomSheet(
-                        context: context,
-                        shipment: order,
-                        appProvider: appProvider,
-                      );
-                    } else if (value == 'assignDriver') {
-                      showDriverAssignmentDialog(context, appProvider.drivers)
-                          .then((driver) {
-                        if (driver != null) {
-                          appProvider.assignDriver(order.orderId, driver);
-                        }
-                      });
-
-                    } else if (value == 'واصل bx') {
-                     appProvider.updateIsCompanyDeliveryFeePaid(order.orderId, true);
-                   
-                      
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem<String>(
-                      value: 'changeStatus',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 18, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Text('تغير الحاله'),
-                        ],
-                      ),
+              cellWidget = PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.black87),
+                tooltip: 'الإجراءات',
+                onSelected: (value) {
+                  if (value == 'changeStatus') {
+                    showFutureDetailsBottomSheet(
+                      context: context,
+                      shipment: order,
+                      appProvider: appProvider,
+                    );
+                  } else if (value == 'assignDriver') {
+                    showDriverAssignmentDialog(context, appProvider.drivers)
+                        .then((driver) {
+                      if (driver != null) {
+                        appProvider.assignDriver(order.orderId, driver);
+                      }
+                    });
+                  } else if (value == 'واصل bx') {
+                    appProvider.updateIsCompanyDeliveryFeePaid(
+                        order.orderId, true);
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'changeStatus',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('تغير الحاله'),
+                      ],
                     ),
-                    if (order.status == 'الطلبات الجديدة')
+                  ),
+                  if (order.status == 'الطلبات الجديدة')
                     const PopupMenuItem<String>(
                       value: 'assignDriver',
                       child: Row(
                         children: [
-                          Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                          Icon(Icons.local_shipping,
+                              size: 18, color: Colors.blue),
                           SizedBox(width: 8),
                           Text('تعيين سائق'),
                         ],
                       ),
                     ),
-                    if (order.paymentMethod == 'مدفوعة مسبقا' && !order.isCompanyDeliveryFeePaid)
+                  if (order.paymentMethod == 'مدفوعة مسبقا' &&
+                      !order.isCompanyDeliveryFeePaid)
                     const PopupMenuItem<String>(
                       value: 'واصل bx',
                       child: Row(
                         children: [
-                          Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                          Icon(Icons.local_shipping,
+                              size: 18, color: Colors.blue),
                           SizedBox(width: 8),
                           Text('واصل bx'),
                         ],
                       ),
                     ),
-                  ],
-                );
-             
+                ],
+              );
+
               break;
             default:
               cellWidget = Text('');
@@ -3689,8 +3693,7 @@ class _ShipmentDataTableSource extends DataTableSource {
             SizedBox(width: width, child: cellWidget),
             onTap: id == 'status'
                 ? () => showFutureDetailsBottomSheet(
-                  context: context,
-                    shipment: order, appProvider: appProvider)
+                    context: context, shipment: order, appProvider: appProvider)
                 : null,
           );
         }),

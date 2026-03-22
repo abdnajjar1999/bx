@@ -35,6 +35,36 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
   bool isExpanded = true;
   Driver? assignmentDriver;
 
+  // تابات الفلترة حسب الحالة
+  int _selectedTabIndex = 0;
+  final List<Map<String, dynamic>> _filterTabs = [
+    {'label': 'الكل', 'icon': Icons.all_inbox},
+    {'label': 'في الفرع', 'icon': Icons.store},
+    {'label': 'مؤجلة لوقت آخر', 'icon': Icons.schedule},
+    {'label': 'مرجعة عند الفرع', 'icon': Icons.assignment_return},
+  ];
+
+  List<Shipment> get _filteredByTab {
+    switch (_selectedTabIndex) {
+      case 1: // في الفرع
+        return tourShipments
+            .where((o) => o.status == 'في الفرع')
+            .toList();
+      case 2: // مؤجلة لوقت آخر
+        return tourShipments
+            .where((o) => o.status == 'مؤجلة لوقت آخر')
+            .toList();
+      case 3: // مرجعة عند الفرع
+        return tourShipments
+            .where((o) =>
+                o.status == 'تم إرجاعها' &&
+                o.orderPossession == OrderPossession.branch)
+            .toList();
+      default:
+        return tourShipments.toList();
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -91,7 +121,18 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
       }
 
       setState(() {
-        tourShipments = allOrders.toSet();
+        // عرض فقط الطلبات:
+        // 1. في الفرع
+        // 2. مؤجلة لوقت آخر
+        // 3. تم إرجاعها والـ orderPossession == branch
+        // وإخفاء "الطلبات الجديدة" دائماً
+        tourShipments = allOrders
+            .where((order) =>
+                (order.status == "في الفرع" ||
+                    order.status == "مؤجلة لوقت آخر" ||
+                    (order.status == "تم إرجاعها" &&
+                        order.orderPossession == OrderPossession.branch)))
+            .toSet();
         isLoading = false;
       });
     }).catchError((e) {
@@ -247,7 +288,7 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'عرض الطرود في مناطق: ${List<String>.from(selectedTourData!['areas'] ?? []).join(", ")} (${tourShipments.length} طرد)',
+                    'عرض الطرود في مناطق: ${List<String>.from(selectedTourData!["areas"] ?? []).join(", ")} (${_filteredByTab.length} / ${tourShipments.length} طرد)',
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -255,6 +296,66 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
                   ),
                 ),
               ],
+            ),
+          ),
+        // تابات الفلترة حسب الحالة
+        if (selectedTourId != null)
+          Container(
+            color: Colors.white,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(_filterTabs.length, (index) {
+                  final tab = _filterTabs[index];
+                  final isSelected = _selectedTabIndex == index;
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      _selectedTabIndex = index;
+                      selectedOrderIds.clear();
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFDC2626)
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFFDC2626)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            tab['icon'] as IconData,
+                            size: 16,
+                            color: isSelected ? Colors.white : Colors.grey[700],
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            tab['label'] as String,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color:
+                                  isSelected ? Colors.white : Colors.grey[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
         Expanded(
@@ -277,6 +378,13 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
   }
 
   Widget _buildShipmentsTable() {
+    final displayedShipments = _filteredByTab;
+    if (displayedShipments.isEmpty) {
+      return const Center(
+        child: Text('لا توجد طرود في هذه الفئة',
+            style: TextStyle(color: Colors.grey)),
+      );
+    }
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 1000),
       child: Table(
@@ -292,13 +400,13 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
             decoration: BoxDecoration(color: Colors.grey.shade50),
             children: [
               Checkbox(
-                value: selectedOrderIds.length == tourShipments.length &&
-                    tourShipments.isNotEmpty,
+                value: selectedOrderIds.length == displayedShipments.length &&
+                    displayedShipments.isNotEmpty,
                 onChanged: (value) {
                   setState(() {
                     if (value == true) {
                       selectedOrderIds
-                          .addAll(tourShipments.map((e) => e.orderId));
+                          .addAll(displayedShipments.map((e) => e.orderId));
                     } else {
                       selectedOrderIds.clear();
                     }
@@ -315,7 +423,7 @@ class _TourSelectionDialogState extends State<TourSelectionDialog> {
               _buildTableHeader('مبلغ التحصيل'),
             ],
           ),
-          ...tourShipments.map((s) => _buildShipmentRow(s)).toList(),
+          ...displayedShipments.map((s) => _buildShipmentRow(s)).toList(),
         ],
       ),
     );

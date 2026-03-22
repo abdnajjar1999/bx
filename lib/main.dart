@@ -17,13 +17,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 
-const Color background = Color(0xFFF6F3EC);
-
-const Color primary = Color(0xFF4F2958);
-
-const Color secprimary = Color(0xFFFDD924);
-
-const Color accentColor = Color(0xFF54305F);
+const Color background = Color(0xFFF8FAFC);
+const Color primary = Color(0xFF4F46E5);
+const Color secprimary = Color(0xFFF59E0B);
+const Color accentColor = Color(0xFF6366F1);
 
 String $KcompanyLogo = 'logo.png';
 
@@ -111,41 +108,70 @@ class _MyAppState extends State<MyApp> {
         theme: ThemeData(
           useMaterial3: true,
           fontFamily: FontFamily,
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: primary,
             primary: primary,
             secondary: secprimary,
             tertiary: accentColor,
             surface: Colors.white,
-            background: Colors.white,
-            error: Colors.red,
-            onPrimary: Colors.black,
+            background: background,
+            error: const Color(0xFFEF4444),
+            onPrimary: Colors.white,
             onSecondary: Colors.white,
-            onSurface: Colors.black,
-            onBackground: Colors.black,
-            onError: Colors.white,
             brightness: Brightness.light,
           ),
           appBarTheme: const AppBarTheme(
             backgroundColor: primary,
             foregroundColor: Colors.white,
             elevation: 0,
+            centerTitle: true,
+            titleTextStyle: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFamily: FontFamily,
+            ),
           ),
           cardTheme: CardThemeData(
-            elevation: 2,
+            elevation: 0,
+            color: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.grey.shade100, width: 1),
             ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               foregroundColor: Colors.white,
-              elevation: 2,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: primary, width: 2),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
         darkTheme: ThemeData(

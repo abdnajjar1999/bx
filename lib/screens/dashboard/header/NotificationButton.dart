@@ -157,7 +157,7 @@ class NotificationItem extends StatelessWidget {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
 
     return Container(
-      color: notification.isRead ? Colors.white : Color(0xFFDC2626).withOpacity(0.1),
+      color: notification.isRead ? Colors.white : Color(0xFF4F46E5).withOpacity(0.1),
       child: ListTile(
         title: Text(notification.title),
         subtitle: Column(

@@ -396,13 +396,14 @@ class FirebaseHelper {
     await _fireStore.collection('orders').doc(orderId).update({
       'driverId': driver.userid,
       'driverName': driver.username,
-      'status': 'بانتظار موافقة السائق',
+      'status': 'في المركبة',
+      'orderPossession': 'driverShipping',
       'lastUpdated': DateTime.now().toIso8601String(),
       'logs': FieldValue.arrayUnion([
         {
           'date': DateTime.now().toIso8601String(),
           'text': 'تم تعيين الشحنة للسائق ${driver.username}',
-          'status': 'بانتظار موافقة السائق',
+          'status': 'في المركبة',
           'userName': user?.displayName ?? "مجهول"
         }
       ])
@@ -1618,9 +1619,11 @@ class FirebaseHelper {
   }
 
   updateIsCompanyDeliveryFeePaid(String orderId, bool bool) {
-    _fireStore.collection('orders').doc(orderId).update({'isCompanyDeliveryFeePaid': bool,
-    if(bool)
-    'isDeliveryFeeOnRecipient':false,
+    _fireStore.collection('orders').doc(orderId).update({
+      'isCompanyDeliveryFeePaid': bool,
+      if (bool) 'isDeliveryFeeOnRecipient': false,
+      "status": "الطلبات الجديدة",
+      "notes":""
     });
   }
 }

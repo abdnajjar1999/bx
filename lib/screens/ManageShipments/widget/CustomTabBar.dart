@@ -9,7 +9,7 @@ class CustomTabBar extends StatefulWidget {
 }
 
 class _CustomTabBarState extends State<CustomTabBar> {
-  int? selectedIndex ;
+  int? selectedIndex;
 
   final List<TabItem> tabs = [
     TabItem(title: "طلب تغير الدفع", icon: Icons.currency_exchange),
@@ -18,9 +18,9 @@ class _CustomTabBarState extends State<CustomTabBar> {
     TabItem(title: "ملغاة", icon: Icons.cancel),
     TabItem(title: "تم توصيلها", icon: Icons.check_circle),
     TabItem(title: "تم إرجاعها", icon: Icons.reply),
-      TabItem(title: "تم إرجاعها مع السائق", icon: Icons.person_add),
-      TabItem(title: "تم إرجاعها مع الفرع", icon: Icons.location_city),
-      TabItem(title: "تم إرجاعها مع الزبون", icon: Icons.person),
+    TabItem(title: "تم إرجاعها مع السائق", icon: Icons.person_add),
+    TabItem(title: "تم إرجاعها مع الفرع", icon: Icons.location_city),
+    TabItem(title: "تم إرجاعها مع الزبون", icon: Icons.person),
     TabItem(title: "الطرود حسب مدينة المستقبل", icon: Icons.location_city),
     TabItem(title: "الطلبات المتاخرة", icon: Icons.access_time),
     TabItem(title: "الطرود المحذوفة", icon: Icons.delete),
@@ -50,7 +50,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
             child: Row(
               children: List.generate(
                 tabs.length,
-                    (index) => Expanded(
+                (index) => Expanded(
                   child: InkWell(
                     onTap: () {
                       setState(() {
@@ -67,12 +67,13 @@ class _CustomTabBarState extends State<CustomTabBar> {
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: selectedIndex == index
                             ? [
-                          BoxShadow(
-                            color: const Color(0xFFFF9800).withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          )
-                        ]
+                                BoxShadow(
+                                  color:
+                                      const Color(0xFFFF9800).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
                             : null,
                       ),
                       child: AnimatedContainer(
@@ -116,7 +117,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
             child: Row(
               children: List.generate(
                 tabs.length,
-                    (index) => Expanded(
+                (index) => Expanded(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.symmetric(horizontal: 4),

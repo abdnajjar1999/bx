@@ -80,12 +80,21 @@ class CustomerDetailsScreen extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Text(
-                                'زبون',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
-                                ),
+                              Row(
+                                children: [
+                                  _buildBadge(
+                                    _getCustomerTypeLabel(
+                                        customer.customerType),
+                                    Colors.blue,
+                                  ),
+                                  SizedBox(width: 8),
+                                  _buildBadge(
+                                    customer.status,
+                                    customer.status == 'نشط'
+                                        ? Colors.green
+                                        : Colors.orange,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -96,16 +105,47 @@ class CustomerDetailsScreen extends StatelessWidget {
 
                     // Contact Information Section
                     _buildSection(
-                      title: 'معلومات الاتصال',
+                      title: 'معلومات الاتصال والهوية',
                       children: [
                         _buildInfoRow(
                             Icons.email, 'البريد الإلكتروني', customer.email),
                         _buildInfoRow(
                             Icons.phone, 'رقم الهاتف', customer.phoneNumber),
-                        _buildInfoRow(
-                            Icons.location_on, 'العنوان', customer.address),
+                        _buildInfoRow(Icons.badge, 'الرقم الوطني',
+                            customer.nationalId ?? 'غير متوفر'),
+                        _buildInfoRow(Icons.location_on, 'العنوان الرئيسي',
+                            customer.address),
                         _buildInfoRow(Icons.location_city, 'المدينة',
                             customer.city ?? 'غير محدد'),
+                        if (customer.promotionalName != null &&
+                            customer.promotionalName!.isNotEmpty)
+                          _buildInfoRow(Icons.star, 'الاسم',
+                              customer.promotionalName!),
+                      ],
+                    ),
+
+                    // Loyalty and Rating Section
+                    _buildSection(
+                      title: 'النقاط والتقييم',
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildInfoRow(
+                                Icons.favorite,
+                                'نقاط الولاء',
+                                customer.loyaltyPoints.toStringAsFixed(0),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildInfoRow(
+                                Icons.star,
+                                'التقييم الحالي',
+                                '${customer.userRating.toStringAsFixed(1)} (${customer.ratingCount} تقييم)',
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
 
@@ -121,36 +161,38 @@ class CustomerDetailsScreen extends StatelessWidget {
                       ],
                     ),
 
-                    // Permissions Section
+                    // Verification Status Section
                     _buildSection(
-                      title: 'الإعدادات والصلاحيات',
+                      title: 'التوثيق وحالة الحساب',
                       children: [
-                        _buildPermissionRow(
-                          'السماح بتعديل المشرف',
-                          customer.allowAdminModification ?? false,
+                        _buildVerificationRow(
+                          'توثيق الهوية',
+                          customer.isIdVerified,
                         ),
-                        _buildPermissionRow(
-                          'السماح بتعديل المشرفين الآخرين',
-                          customer.allowOtherAdminsModification ?? false,
+                        _buildVerificationRow(
+                          'التوثيق التجاري',
+                          customer.isCommercialVerified,
                         ),
-                        _buildPermissionRow(
-                          'إظهار السعر في التطبيق',
-                          customer.showPriceInApp ?? false,
-                        ),
-                        _buildPermissionRow(
-                          'إظهار السائق في التطبيق',
-                          customer.showDriverInApp ?? false,
-                        ),
-                        _buildPermissionRow(
-                          'إظهار العنوان في التطبيق',
-                          customer.showAddressInApp ?? false,
-                        ),
-                        _buildPermissionRow(
-                          'إظهار رقم الهاتف في التطبيق',
-                          customer.showPhoneInApp ?? false,
+                        _buildVerificationRow(
+                          'توثيق الهاتف',
+                          customer.isPhoneVerified,
                         ),
                       ],
                     ),
+
+                    // Saved Addresses Section
+                    if (customer.savedAddresses.isNotEmpty)
+                      _buildSection(
+                        title: 'العناوين المحفوظة',
+                        children: customer.savedAddresses
+                            .map((addr) => _buildInfoRow(
+                                  Icons.bookmark_border,
+                                  addr.address,
+                                  '${addr.latitude.toStringAsFixed(4)}, ${addr.longitude.toStringAsFixed(4)}',
+                                ))
+                            .toList(),
+                      ),
+
                   ],
                 ),
               ),
@@ -230,7 +272,7 @@ class CustomerDetailsScreen extends StatelessWidget {
         children: [
           Icon(
             value ? Icons.check_circle : Icons.cancel,
-            color: value ? Color(0xFFDC2626) : Colors.red,
+            color: value ? Colors.green : Colors.red,
             size: 20,
           ),
           SizedBox(width: 12),
@@ -243,5 +285,43 @@ class CustomerDetailsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildVerificationRow(String label, bool value) {
+    return _buildPermissionRow(label, value);
+  }
+
+  Widget _buildBadge(String text, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  String _getCustomerTypeLabel(CustomerType type) {
+    switch (type) {
+      case CustomerType.passenger:
+        return 'مسافر';
+      case CustomerType.restaurant:
+        return 'مطعم';
+      case CustomerType.buyer:
+        return 'مشتري';
+      case CustomerType.shop:
+        return 'محل';
+      default:
+        return 'غير معروف';
+    }
   }
 }

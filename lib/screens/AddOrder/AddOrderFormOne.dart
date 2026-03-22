@@ -2,7 +2,6 @@ import '../../main.dart';
 import '../../models/customer.dart';
 import '../../models/Inventory.dart';
 import '../../models/Driver.dart';
-import '../../models/PriceCalculators.dart';
 import '../../models/Shipment.dart';
 import '../../shared/constants.dart';
 import '../ManageShipments/widget/SearchableDropdown.dart';
@@ -12,9 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:provider/provider.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import '../../models/supply_order.dart';
-
 import '../../shared/appProvider.dart';
 
 class AddOrderFormOne extends StatefulWidget {
@@ -141,7 +138,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
       // Set dropdown values
       setState(() {
-        selectedCity = shipment.city.split(' ')[0];
+        selectedCity = shipment.city;
         if (appProvider.citiesAndPlacesNames.contains(shipment.city)) {
           selectedCityPlace = shipment.city;
         }
@@ -298,7 +295,45 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           isShipmentWithItems: showInventorySection);
 
       if (_isEditMode) {
-        appProvider.updateOrder(shipmentData.toMap());
+        // Build a specific update map for editing to avoid overwriting status or concurrent logs
+        Map<String, dynamic> updateMap = {
+          'orderId': shipmentData.orderId,
+          'username': shipmentData.username,
+          'userId': shipmentData.userId,
+          'profileImageUrl': shipmentData.profileImageUrl,
+          'driverId': shipmentData.driverId,
+          'driverName': shipmentData.driverName,
+          'packageAttributes': shipmentData.packageAttributes.toMap(),
+          'deliveryCost': shipmentData.deliveryCost,
+          'collectionMethod': shipmentData.collectionMethod,
+          'recipientName': shipmentData.recipientName,
+          'phoneNumber': shipmentData.phoneNumber,
+          'city': shipmentData.city,
+          'addressDescription': shipmentData.addressDescription,
+          'paymentMethod': shipmentData.paymentMethod,
+          'codAmount': shipmentData.codAmount,
+          'serviceType': shipmentData.serviceType,
+          'trackingNumber': shipmentData.trackingNumber,
+          'contents': shipmentData.contents,
+          'weight': shipmentData.weight,
+          'notes': shipmentData.notes,
+          'parcelCount': shipmentData.parcelCount,
+          'userphone': shipmentData.userphone,
+          'customerlocation': shipmentData.customerlocation,
+          'lastUpdated': shipmentData.lastUpdated,
+          'deliveryDate': shipmentData.deliveryDate != null
+              ? shipmentData.deliveryDate!.toIso8601String()
+              : null,
+          'expectedDeliveryDate':
+              shipmentData.expectedDeliveryDate?.toIso8601String() ??
+                  DateTime.now().toIso8601String(),
+          'isDeliveryFeeOnRecipient': shipmentData.isDeliveryFeeOnRecipient,
+          'isCompanyDeliveryFeePaid': shipmentData.isCompanyDeliveryFeePaid,
+          'isPayToRecipient': shipmentData.isPayToRecipient,
+          'selectedItems': shipmentData.selectedItems,
+          'isShipmentWithItems': shipmentData.isShipmentWithItems,
+        };
+        appProvider.updateOrder(updateMap);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('تم تحديث الطلب بنجاح')));
@@ -382,7 +417,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
   void _cheakForDriver(AppProvider appProvider) {
     if (selectedCity != null) {
-      final city = selectedCity!.split(' ')[0];
+      final city = selectedCity!;
       List<Driver> driversFromCity = appProvider.drivers
           .where((driver) => driver.cities.contains(city))
           .toList();
@@ -696,6 +731,8 @@ class AddOrderFormState extends State<AddOrderFormOne> {
   }
 
   Widget _buildPickupLocationSection(AppProvider appProvider) {
+    if (_isEditMode) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -805,7 +842,9 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           children: [
             Expanded(
               child: _buildTextField(
-                  controller: recipientNameController, label: 'اسم المستلم'),
+                  isRequired: false,
+                  controller: recipientNameController,
+                  label: 'اسم المستلم'),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -833,8 +872,10 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 value: selectedCityPlace,
                 items: appProvider.citiesAndPlacesNames,
                 onChanged: (value) {
-                  setState(() => selectedCityPlace = value);
-                  selectedCity = value!.split(" ")[0];
+                  setState(() {
+                    selectedCityPlace = value;
+                    selectedCity = value;
+                  });
 
                   calculateDeliveryCost(appProvider);
                   _cheakForDriver(appProvider);
@@ -1442,50 +1483,15 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
   void calculateDeliveryCost(AppProvider appProvider) {
     if (selectedCity != null && appProvider.selectedCustomer != null) {
-      // Find customer-specific shipping route
+      try {
+        double price = appProvider.calculateDeliveryCostForCity(
+            selectedCity!, appProvider.selectedCustomer!.userid);
 
-      UserShippingRoute? customerRoute =
-          appProvider.userShippingRoutes.firstWhere(
-        (route) => route.userId == appProvider.selectedCustomer!.userid,
-        orElse: () => appProvider.userShippingRoutes
-            .firstWhere((route) => route.userId == 'main'),
-      );
-
-      // Find matching route for selected city
-      ShippingRoute? matchingRoute = customerRoute.shippingRoute.firstWhere(
-        (route) =>
-            route.to == selectedCity &&
-            route.from == appProvider.selectedCustomer!.city,
-        orElse: () {
-          // If no customer-specific route found, try main route
-          UserShippingRoute mainRoute = appProvider.userShippingRoutes
-              .firstWhere((route) => route.userId == 'main');
-          return mainRoute.shippingRoute.firstWhere(
-              (route) =>
-                  route.to == selectedCity &&
-                  route.from == appProvider.selectedCustomer!.city, orElse: () {
-            UserShippingRoute mainRoute = appProvider.userShippingRoutes
-                .firstWhere((route) => route.userId == 'main');
-            return mainRoute.shippingRoute.firstWhere(
-                (route) =>
-                    route.to == appProvider.selectedCustomer!.city &&
-                    route.from == selectedCity, orElse: () {
-              return ShippingRoute(
-                from: '',
-                to: '',
-                deliveryPrice: 0,
-                returnPrice: 0,
-                returnBeforeDeliveryPrice: 0,
-              );
-            });
-          });
-        },
-      );
-
-      if (matchingRoute.deliveryPrice > 0) {
         setState(() {
-          deliveryCostController.text = matchingRoute.deliveryPrice.toString();
+          deliveryCostController.text = price > 0 ? price.toString() : "";
         });
+      } catch (e) {
+        print("Error in calculateDeliveryCost: $e");
       }
     }
   }

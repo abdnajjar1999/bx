@@ -107,7 +107,8 @@ class ScannerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> bulkUpdateStatus(String status, {String? note}) async {
+  Future<void> bulkUpdateStatus(String status, String performedBy,
+      {String? note}) async {
     if (_scannedShipments.isEmpty || _selectedIds.isEmpty) return;
 
     _isLoading = true;
@@ -127,10 +128,11 @@ class ScannerProvider extends ChangeNotifier {
 
         // Prepare log entry
         final logEntry = {
-          'text': 'تحديث الحالة إلى $status' + (note != null ? ': $note' : ''),
-          'date': now.toIso8601String(),
-          'status': status,
-        };
+          'text': 'تحديث الحالة إلى $status (عبر الماسح)' + (note != null ? ': $note' : ''),
+        'date': now.toIso8601String(),
+        'status': status,
+        'userName': performedBy,
+      };
 
         Map<String, dynamic> updates = {
           'status': status,
@@ -165,7 +167,7 @@ class ScannerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> bulkAssignDriver(Driver driver) async {
+  Future<void> bulkAssignDriver(Driver driver, String performedBy) async {
     if (_scannedShipments.isEmpty || _selectedIds.isEmpty) return;
 
     _isLoading = true;
@@ -183,14 +185,16 @@ class ScannerProvider extends ChangeNotifier {
             .doc(shipment.orderId);
 
         final logEntry = {
-          'text': 'تم تعيين السائق ${driver.username}',
-          'date': Timestamp.fromDate(now),
+          'text': 'تم تعيين السائق ${driver.username} (عبر الماسح)',
+          'date': now.toIso8601String(),
+          'userName': performedBy,
         };
 
         batch.update(docRef, {
           'driverId': driver.userid,
           'driverName': driver.username,
-          'status': 'بانتظار موافقة السائق',
+          'status': 'في المركبة',
+          'orderPossession': 'driverShipping',
           'logs': FieldValue.arrayUnion([logEntry]),
         });
       }
@@ -206,6 +210,54 @@ class ScannerProvider extends ChangeNotifier {
       }
     } catch (e) {
       print('Error in bulk driver assignment: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> bulkReceiveReturns(String performedBy) async {
+    if (_scannedShipments.isEmpty || _selectedIds.isEmpty) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      final now = DateTime.now();
+
+      final selectedShipments = _scannedShipments
+          .where((s) => _selectedIds.contains(s.orderId))
+          .toList();
+
+      for (var shipment in selectedShipments) {
+        final docRef = FirebaseFirestore.instance
+            .collection('orders')
+            .doc(shipment.orderId);
+
+        final logEntry = {
+          'text': 'تم استلام المرتجع في الفرع (عبر الماسح)',
+          'date': now.toIso8601String(),
+          'userName': performedBy,
+        };
+
+        batch.update(docRef, {
+          'orderPossession': 'branch',
+          'logs': FieldValue.arrayUnion([logEntry]),
+        });
+      }
+
+      await batch.commit();
+
+      // Update local state
+      for (var shipment in selectedShipments) {
+        _scannedIds.remove(shipment.orderId);
+        _scannedIds.remove(shipment.trackingNumber);
+        _selectedIds.remove(shipment.orderId);
+        _scannedShipments.removeWhere((s) => s.orderId == shipment.orderId);
+      }
+    } catch (e) {
+      print('Error in bulk receive returns: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
