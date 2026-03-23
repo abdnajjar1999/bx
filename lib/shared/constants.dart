@@ -341,6 +341,7 @@ const List<String> drawerTitles = [
   'إدارة جولات الجلب', // Index 28
   'اداره الموظفين', // Index 29
   "ضبط استيراد الاكسل", // Index 30
+  'أنواع الطرود', // Index 31
 ];
 
 List<String>? userPermissions;

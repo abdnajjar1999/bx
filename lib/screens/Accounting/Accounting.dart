@@ -14,6 +14,7 @@ import '../../models/UserAccount.dart';
 import 'PaymentSelectionDialog.dart';
 import 'ShipmentReceiptDialog.dart';
 import 'ShipmentPreviewDialog.dart';
+import '../ManageShipments/ManageShipmentsScreen/BxPaymentDialog.dart';
 
 class Accounting extends StatefulWidget {
   final int selectedIndex;
@@ -28,6 +29,38 @@ class _AccountingState extends State<Accounting> {
   Set<String> selectedUserIds = {};
   final ScrollController _horizontalScrollController = ScrollController();
   final ScrollController _verticalScrollController = ScrollController();
+
+  Future<bool> _handleNegativeAccount(UserAccount account) async {
+    bool? result = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('رصيد الحساب بالسالب', textAlign: TextAlign.right),
+          content: Text('قيمة حساب الزبون ${account.client} بالسالب (${account.getAmountToPay().toStringAsFixed(2)}). ماذا تريد أن تفعل؟', textAlign: TextAlign.right),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('انتظار طرود أخرى'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('تحويلها لواصل bx'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      if (!mounted) return false;
+      bool? paymentResult = await showDialog<bool>(
+        context: context,
+        builder: (context) => BxPaymentDialog(userAccount: account),
+      );
+      return paymentResult == true;
+    }
+    return false;
+  }
 
   void _toggleSelectAll(bool? value) {
     setState(() {
@@ -182,12 +215,22 @@ class _AccountingState extends State<Accounting> {
             _buildActionButton(
               'تصدير إلى ${widget.selectedIndex == 6 ? "مفرزه" : widget.selectedIndex == 7 ? "مصدرة" : "مصدرة"}',
               true,
-              onPressed: () {
+              onPressed: () async {
                 final selectedAccounts = userAccounts
                     .where(
                         (account) => selectedUserIds.contains(account.client))
                     .toList();
+                
+                bool allExported = true;
                 for (var account in selectedAccounts) {
+                  if (account.getAmountToPay() < 0) {
+                    bool shouldExport = await _handleNegativeAccount(account);
+                    if (!shouldExport) {
+                      allExported = false;
+                      continue;
+                    }
+                  }
+
                   if (widget.selectedIndex == 6) {
                     FirebaseHelper.updatePaymentStatus(account, "sorted");
                   } else if (widget.selectedIndex == 7) {
@@ -196,7 +239,7 @@ class _AccountingState extends State<Accounting> {
                     FirebaseHelper.updatePaymentStatus(account, "exported");
                   }
                 }
-                if (mounted) {
+                if (mounted && allExported && selectedAccounts.isNotEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('تم تصدير البيانات بنجاح'),
@@ -213,7 +256,7 @@ class _AccountingState extends State<Accounting> {
   }
 
   Widget _buildActionButton(String text, bool isActive,
-      {Null Function()? onPressed, Color? color}) {
+      {void Function()? onPressed, Color? color}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 4),
       child: ElevatedButton(
@@ -385,7 +428,11 @@ class _AccountingState extends State<Accounting> {
               if (widget.selectedIndex == 6)
                 IconButton(
                   icon: const Icon(Icons.inventory, size: 20),
-                  onPressed: () {
+                  onPressed: () async {
+                    if (shipment.getAmountToPay() < 0) {
+                      bool shouldExport = await _handleNegativeAccount(shipment);
+                      if (!shouldExport) return;
+                    }
                     FirebaseHelper.updatePaymentStatus(shipment, "sorted");
                   },
                   padding: EdgeInsets.zero,
@@ -393,7 +440,11 @@ class _AccountingState extends State<Accounting> {
               if (widget.selectedIndex == 7)
                 IconButton(
                   icon: const Icon(Icons.send, size: 20),
-                  onPressed: () {
+                  onPressed: () async {
+                    if (shipment.getAmountToPay() < 0) {
+                      bool shouldExport = await _handleNegativeAccount(shipment);
+                      if (!shouldExport) return;
+                    }
                     FirebaseHelper.updatePaymentStatus(shipment, "exported");
                   },
                   padding: EdgeInsets.zero,

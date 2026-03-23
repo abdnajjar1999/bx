@@ -41,6 +41,7 @@ import '../TourSelectionDialog.dart';
 import '../CustomerCollectionDialog.dart';
 import 'dialogs.dart';
 import 'showChangeStatusBottomSheet.dart';
+import 'BxPaymentDialog.dart';
 
 class ManageShipmentsScreen extends StatefulWidget {
   final int selectedIndex;
@@ -3640,8 +3641,10 @@ if(order.isCompanyDeliveryFeePaid){
                       }
                     });
                   } else if (value == 'واصل bx') {
-                    appProvider.updateIsCompanyDeliveryFeePaid(
-                        order.orderId, true);
+                    showDialog(
+                      context: context,
+                      builder: (context) => BxPaymentDialog(order: order),
+                    );
                   }
                 },
                 itemBuilder: (context) => [

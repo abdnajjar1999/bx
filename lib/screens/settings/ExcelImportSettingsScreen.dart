@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../main.dart';
-import '../../shared/appProvider.dart';
-import '../../shared/constants.dart';
-import '../../models/customer.dart';
+import '../../../main.dart';
+import '../../../shared/appProvider.dart';
+import '../../../shared/constants.dart';
+import '../../../models/customer.dart';
 
 class ExcelImportSettingsScreen extends StatefulWidget {
   const ExcelImportSettingsScreen({super.key});
@@ -19,8 +19,7 @@ class _ExcelImportSettingsScreenState extends State<ExcelImportSettingsScreen> {
     final appProvider = Provider.of<AppProvider>(context);
 
     return Directionality(
-                  textDirection: TextDirection.ltr,
-
+      textDirection: TextDirection.ltr,
       child: Scaffold(
         backgroundColor: background,
         appBar: AppBar(

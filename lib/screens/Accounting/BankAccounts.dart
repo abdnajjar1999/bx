@@ -178,7 +178,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
             onPressed: () {
               if (formKey.currentState?.validate() ?? false) {
                 appProvider.addAccountName(accountNameController.text);
-                
+
                 final balanceText = balanceController.text;
                 if (balanceText.isNotEmpty) {
                   final balance = double.tryParse(balanceText);
@@ -259,26 +259,26 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                         value: 'سحب',
                         child: Text('سحب'),
                       ),
-                      DropdownMenuItem<String>(
-                        value: 'مبيعات',
-                        child: Text('مبيعات'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'مصروفات',
-                        child: Text('مصروفات'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'تحصيلات من السائق',
-                        child: Text('تحصيلات من السائق'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'سداد للزبون',
-                        child: Text('سداد للزبون'),
-                      ),
-                      DropdownMenuItem<String>(
-                        value: 'تحويل',
-                        child: Text('تحويل بين الحسابات'),
-                      ),
+                      // DropdownMenuItem<String>(
+                      //   value: 'مبيعات',
+                      //   child: Text('مبيعات'),
+                      // ),
+                      // DropdownMenuItem<String>(
+                      //   value: 'مصروفات',
+                      //   child: Text('مصروفات'),
+                      // ),
+                      // DropdownMenuItem<String>(
+                      //   value: 'تحصيلات من السائق',
+                      //   child: Text('تحصيلات من السائق'),
+                      // ),
+                      // DropdownMenuItem<String>(
+                      //   value: 'سداد للزبون',
+                      //   child: Text('سداد للزبون'),
+                      // ),
+                      // DropdownMenuItem<String>(
+                      //   value: 'تحويل',
+                      //   child: Text('تحويل بين الحسابات'),
+                      // ),
                     ],
                     onChanged: (String? value) {
                       setDialogState(() {
@@ -385,12 +385,14 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                           child: RawAutocomplete<String>(
                             textEditingController: otherAccountController,
                             focusNode: otherAccountFocusNode1,
-                            optionsBuilder: (TextEditingValue textEditingValue) {
+                            optionsBuilder:
+                                (TextEditingValue textEditingValue) {
                               if (textEditingValue.text.isEmpty) {
                                 return uniqueAccounts;
                               }
                               return uniqueAccounts.where((String option) {
-                                return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                                return option.toLowerCase().contains(
+                                    textEditingValue.text.toLowerCase());
                               });
                             },
                             fieldViewBuilder: (BuildContext context,
@@ -427,18 +429,22 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                                     child: ConstrainedBox(
                                       constraints: BoxConstraints(
                                         maxHeight: 200,
-                                        maxWidth: 400, // Fixed width or match field
+                                        maxWidth:
+                                            400, // Fixed width or match field
                                       ),
                                       child: ListView.builder(
                                         padding: EdgeInsets.zero,
                                         shrinkWrap: true,
                                         itemCount: options.length,
-                                        itemBuilder: (BuildContext context, int index) {
-                                          final String option = options.elementAt(index);
+                                        itemBuilder:
+                                            (BuildContext context, int index) {
+                                          final String option =
+                                              options.elementAt(index);
                                           return InkWell(
                                             onTap: () => onSelected(option),
                                             child: Padding(
-                                              padding: const EdgeInsets.all(16.0),
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
                                               child: Text(option),
                                             ),
                                           );
@@ -484,7 +490,9 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                             return uniqueAccounts;
                           }
                           return uniqueAccounts.where((String option) {
-                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                            return option
+                                .toLowerCase()
+                                .contains(textEditingValue.text.toLowerCase());
                           });
                         },
                         fieldViewBuilder: (BuildContext context,
@@ -525,8 +533,10 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                                     padding: EdgeInsets.zero,
                                     shrinkWrap: true,
                                     itemCount: options.length,
-                                    itemBuilder: (BuildContext context, int index) {
-                                      final String option = options.elementAt(index);
+                                    itemBuilder:
+                                        (BuildContext context, int index) {
+                                      final String option =
+                                          options.elementAt(index);
                                       return InkWell(
                                         onTap: () => onSelected(option),
                                         child: Padding(
@@ -1042,14 +1052,17 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                                           onPressed: () {
                                             setState(() {
                                               final now = DateTime.now();
-                                              _fromDate = DateTime(now.year, now.month, 1);
+                                              _fromDate = DateTime(
+                                                  now.year, now.month, 1);
                                               // We need to account for next month's 1st day - 1 day
-                                              _toDate = DateTime(now.year, now.month + 1, 0); 
+                                              _toDate = DateTime(
+                                                  now.year, now.month + 1, 0);
                                             });
                                           },
                                           child: const Text('هذا الشهر'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.grey.shade100,
+                                            backgroundColor:
+                                                Colors.grey.shade100,
                                             foregroundColor: Colors.black87,
                                           ),
                                         ),
@@ -1058,13 +1071,16 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                                           onPressed: () {
                                             setState(() {
                                               final now = DateTime.now();
-                                              _fromDate = DateTime(now.year, 1, 1);
-                                              _toDate = DateTime(now.year, 12, 31);
+                                              _fromDate =
+                                                  DateTime(now.year, 1, 1);
+                                              _toDate =
+                                                  DateTime(now.year, 12, 31);
                                             });
                                           },
                                           child: const Text('هذا العام'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.grey.shade100,
+                                            backgroundColor:
+                                                Colors.grey.shade100,
                                             foregroundColor: Colors.black87,
                                           ),
                                         ),
@@ -1286,121 +1302,117 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
               (states) =>
                   Theme.of(context).colorScheme.primary.withOpacity(0.1),
             ),
-              columns: const [
-                DataColumn(
-                  label: Row(
-                    children: [
-                      Icon(Icons.account_balance, size: 16),
-                      SizedBox(width: 4),
-                      Text('اسم الحساب',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                DataColumn(
-                  label: Row(
-                    children: [
-                      Icon(Icons.account_balance_wallet, size: 16),
-                      SizedBox(width: 4),
-                      Text('الرصيد',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                DataColumn(
-                  label: Row(
-                    children: [
-                      Icon(Icons.edit, size: 16),
-                      SizedBox(width: 4),
-                      Text('تعديل',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                DataColumn(
-                  label: Row(
-                    children: [
-                      Icon(Icons.delete, size: 16),
-                      SizedBox(width: 4),
-                      Text('حذف',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
-              rows: appProvider.bankAccounts.map((account) {
-                final balance = appProvider.getAccountBalance(account);
-                return DataRow(
-                  cells: [
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          account,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: balance >= 0
-                              ? Color(0xFFDC2626).withOpacity(0.1)
-                              : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: balance >= 0
-                                ? Color(0xFFDC2626).withOpacity(0.3)
-                                : Colors.red.shade200,
-                          ),
-                        ),
-                        child: Text(
-                          '${balance.toStringAsFixed(2)} JOD',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: balance >= 0
-                                ? Color(0xFFDC2626)
-                                : Colors.red.shade700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      IconButton(
-                        icon:
-                            const Icon(Icons.edit, color: Color(0xFFDC2626)),
-                        onPressed: () {
-                          // TODO: Implement edit functionality
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('سيتم إضافة وظيفة التعديل قريباً')),
-                          );
-                        },
-                        tooltip: 'تعديل الحساب',
-                      ),
-                    ),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          // TODO: Implement delete functionality with confirmation
-                          _showDeleteConfirmation(
-                              context, account, appProvider);
-                        },
-                        tooltip: 'حذف الحساب',
-                      ),
-                    ),
+            columns: const [
+              DataColumn(
+                label: Row(
+                  children: [
+                    Icon(Icons.account_balance, size: 16),
+                    SizedBox(width: 4),
+                    Text('اسم الحساب',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ],
-                );
-              }).toList(),
-            ),
+                ),
+              ),
+              DataColumn(
+                label: Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet, size: 16),
+                    SizedBox(width: 4),
+                    Text('الرصيد',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              DataColumn(
+                label: Row(
+                  children: [
+                    Icon(Icons.edit, size: 16),
+                    SizedBox(width: 4),
+                    Text('تعديل',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+              DataColumn(
+                label: Row(
+                  children: [
+                    Icon(Icons.delete, size: 16),
+                    SizedBox(width: 4),
+                    Text('حذف', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+            rows: appProvider.bankAccounts.map((account) {
+              final balance = appProvider.getAccountBalance(account);
+              return DataRow(
+                cells: [
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        account,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: balance >= 0
+                            ? Color(0xFFDC2626).withOpacity(0.1)
+                            : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: balance >= 0
+                              ? Color(0xFFDC2626).withOpacity(0.3)
+                              : Colors.red.shade200,
+                        ),
+                      ),
+                      child: Text(
+                        '${balance.toStringAsFixed(2)} JOD',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: balance >= 0
+                              ? Color(0xFFDC2626)
+                              : Colors.red.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Color(0xFFDC2626)),
+                      onPressed: () {
+                        // TODO: Implement edit functionality
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('سيتم إضافة وظيفة التعديل قريباً')),
+                        );
+                      },
+                      tooltip: 'تعديل الحساب',
+                    ),
+                  ),
+                  DataCell(
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        // TODO: Implement delete functionality with confirmation
+                        _showDeleteConfirmation(context, account, appProvider);
+                      },
+                      tooltip: 'حذف الحساب',
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
           ),
         ),
-      );
+      ),
+    );
   }
 
   void _showDeleteConfirmation(
@@ -1433,13 +1445,13 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
 
   Widget _buildIncomeStatement(AppProvider appProvider) {
     final transfers = _getFilteredTransfers(appProvider);
-    
+
     Map<String, double> revenues = {};
     double totalRevenues = 0;
-    
+
     Map<String, double> expenses = {};
     double totalExpenses = 0;
-    
+
     for (var t in transfers) {
       if (t.otherAccountCategory == AccountCategory.revenues) {
         double amount = t.type == 'إيداع' ? t.amount : -t.amount;
@@ -1484,7 +1496,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
               const SizedBox(height: 16),
               const Divider(thickness: 2),
               const SizedBox(height: 16),
-              
+
               // Revenues Section
               Text(
                 'الإيرادات:',
@@ -1497,16 +1509,18 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
               const SizedBox(height: 8),
               if (revenues.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Text('لا توجد إيرادات مسجلة', style: TextStyle(color: Colors.grey)),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Text('لا توجد إيرادات مسجلة',
+                      style: TextStyle(color: Colors.grey)),
                 )
               else
                 ...revenues.entries.map((e) => _buildIncomeRow(e.key, e.value)),
               const Divider(),
               _buildIncomeRow('إجمالي الإيرادات', totalRevenues, isTotal: true),
-              
+
               const SizedBox(height: 32),
-              
+
               // Expenses Section
               Text(
                 'يخصم منه: المصروفات:',
@@ -1519,29 +1533,38 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
               const SizedBox(height: 8),
               if (expenses.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Text('لا توجد مصروفات مسجلة', style: TextStyle(color: Colors.grey)),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Text('لا توجد مصروفات مسجلة',
+                      style: TextStyle(color: Colors.grey)),
                 )
               else
                 ...expenses.entries.map((e) => _buildIncomeRow(e.key, e.value)),
               const Divider(),
               _buildIncomeRow('إجمالي المصروفات', totalExpenses, isTotal: true),
-              
+
               const SizedBox(height: 48),
               const Divider(thickness: 2),
-              
+
               // Net Income Section
               Container(
                 decoration: BoxDecoration(
-                  color: netIncome >= 0 ? Colors.green.shade50 : Colors.red.shade50,
+                  color: netIncome >= 0
+                      ? Colors.green.shade50
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: netIncome >= 0 ? Colors.green.shade200 : Colors.red.shade200,
+                    color: netIncome >= 0
+                        ? Colors.green.shade200
+                        : Colors.red.shade200,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                 child: _buildIncomeRow(
-                  netIncome >= 0 ? 'صافي الدخل (الربح)' : 'صافي الدخل (الخسارة)',
+                  netIncome >= 0
+                      ? 'صافي الدخل (الربح)'
+                      : 'صافي الدخل (الخسارة)',
                   netIncome,
                   isTotal: true,
                   isNet: true,
@@ -1554,9 +1577,11 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
     );
   }
 
-  Widget _buildIncomeRow(String label, double amount, {bool isTotal = false, bool isNet = false}) {
+  Widget _buildIncomeRow(String label, double amount,
+      {bool isTotal = false, bool isNet = false}) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: isTotal ? 12.0 : 4.0, horizontal: 16.0),
+      padding: EdgeInsets.symmetric(
+          vertical: isTotal ? 12.0 : 4.0, horizontal: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1564,9 +1589,10 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
             label,
             style: TextStyle(
               fontSize: isNet ? 20 : (isTotal ? 16 : 15),
-              fontWeight: (isTotal || isNet) ? FontWeight.bold : FontWeight.normal,
-              color: isNet 
-                  ? (amount >= 0 ? Colors.green.shade800 : Colors.red.shade800) 
+              fontWeight:
+                  (isTotal || isNet) ? FontWeight.bold : FontWeight.normal,
+              color: isNet
+                  ? (amount >= 0 ? Colors.green.shade800 : Colors.red.shade800)
                   : Colors.black87,
             ),
           ),
@@ -1574,9 +1600,10 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
             '${amount.abs().toStringAsFixed(2)} JOD',
             style: TextStyle(
               fontSize: isNet ? 20 : (isTotal ? 16 : 15),
-              fontWeight: (isTotal || isNet) ? FontWeight.bold : FontWeight.normal,
-              color: isNet 
-                  ? (amount >= 0 ? Colors.green.shade800 : Colors.red.shade800) 
+              fontWeight:
+                  (isTotal || isNet) ? FontWeight.bold : FontWeight.normal,
+              color: isNet
+                  ? (amount >= 0 ? Colors.green.shade800 : Colors.red.shade800)
                   : (isTotal ? Colors.black87 : Colors.black54),
             ),
           ),
@@ -1681,7 +1708,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                     ],
                   ),
                 ),
-            
+
                 // Table
                 Expanded(
                   child: SizedBox(
@@ -1691,328 +1718,298 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
                       horizontalMargin: 12,
                       headingRowHeight: 56,
                       dataRowHeight: 72,
-                        headingRowColor: MaterialStateColor.resolveWith(
-                          (states) => Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withOpacity(0.1),
-                        ),
-                        columns: const [
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.tag, size: 18),
-                                SizedBox(width: 6),
-                                Text('رقم القيد',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.category, size: 18),
-                                SizedBox(width: 6),
-                                Text('نوع العملية',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.arrow_back, size: 18),
-                                SizedBox(width: 6),
-                                Text('من حساب',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.arrow_forward, size: 18),
-                                SizedBox(width: 6),
-                                Text('إلى حساب',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.monetization_on, size: 18),
-                                SizedBox(width: 6),
-                                Text('المبلغ',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.calendar_today, size: 18),
-                                SizedBox(width: 6),
-                                Text('التاريخ',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.note, size: 18),
-                                SizedBox(width: 6),
-                                Text('الملاحظات',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.edit, size: 18),
-                                SizedBox(width: 6),
-                                Text('تعديل',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                          DataColumn(
-                            label: Row(
-                              children: [
-                                Icon(Icons.delete, size: 18),
-                                SizedBox(width: 6),
-                                Text('حذف',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ],
-                            ),
-                          ),
-                        ],
-                        rows: filteredTransfers.map((transfer) {
-                          return DataRow(
-                            color: MaterialStateProperty.resolveWith((states) {
-                              return transfer.type == 'إيداع'
-                                  ? Color(0xFFDC2626).withOpacity(0.1)
-                                  : Colors.red.shade50;
-                            }),
-                            cells: [
-                              DataCell(
-                                Container(
-                                  width: 80,
-                                  child: Tooltip(
-                                    message: transfer.id,
-                                    child: Text(
-                                      transfer.id,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  width: 90,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: transfer.type == 'إيداع'
-                                          ? Color(0xFFDC2626)
-                                          : Colors.red,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          transfer.type == 'إيداع'
-                                              ? Icons.arrow_upward
-                                              : Icons.arrow_downward,
-                                          size: 16,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          transfer.type == 'إيداع'
-                                              ? 'إيداع'
-                                              : 'سحب',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  width: 120,
-                                  child: Text(
-                                    transfer.fromAccountDisplay,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  width: 120,
-                                  child: Text(
-                                    transfer.toAccountDisplay,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  width: 100,
-                                  child: Text(
-                                    '${transfer.amount.toStringAsFixed(2)} JOD',
-                                    style: TextStyle(
+                      headingRowColor: MaterialStateColor.resolveWith(
+                        (states) => Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.1),
+                      ),
+                      columns: const [
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.tag, size: 18),
+                              SizedBox(width: 6),
+                              Text('رقم القيد',
+                                  style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: transfer.type == 'إيداع'
-                                          ? Color(0xFFDC2626)
-                                          : Colors.red.shade700,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.category, size: 18),
+                              SizedBox(width: 6),
+                              Text('نوع العملية',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.arrow_back, size: 18),
+                              SizedBox(width: 6),
+                              Text('من حساب',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.arrow_forward, size: 18),
+                              SizedBox(width: 6),
+                              Text('إلى حساب',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.monetization_on, size: 18),
+                              SizedBox(width: 6),
+                              Text('المبلغ',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 18),
+                              SizedBox(width: 6),
+                              Text('التاريخ',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.note, size: 18),
+                              SizedBox(width: 6),
+                              Text('الملاحظات',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                        DataColumn(
+                          label: Row(
+                            children: [
+                              Icon(Icons.cancel_presentation, size: 18),
+                              SizedBox(width: 6),
+                              Text('إلغاء القيد',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      rows: filteredTransfers.map((transfer) {
+                        return DataRow(
+                          color: MaterialStateProperty.resolveWith((states) {
+                            return transfer.type == 'إيداع'
+                                ? Color(0xFFDC2626).withOpacity(0.1)
+                                : Colors.red.shade50;
+                          }),
+                          cells: [
+                            DataCell(
+                              Container(
+                                width: 80,
+                                child: Tooltip(
+                                  message: transfer.id,
+                                  child: Text(
+                                    transfer.id,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13,
                                     ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ),
                               ),
-                              DataCell(
-                                Container(
-                                  width: 120,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                            ),
+                            DataCell(
+                              Container(
+                                width: 90,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: transfer.type == 'إيداع'
+                                        ? Color(0xFFDC2626)
+                                        : Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        DateFormat('yyyy/MM/dd')
-                                            .format(transfer.date),
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 13),
+                                      Icon(
+                                        transfer.type == 'إيداع'
+                                            ? Icons.arrow_upward
+                                            : Icons.arrow_downward,
+                                        size: 16,
+                                        color: Colors.white,
                                       ),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        DateFormat('HH:mm')
-                                            .format(transfer.date),
+                                        transfer.type == 'إيداع'
+                                            ? 'إيداع'
+                                            : 'سحب',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                width: 120,
+                                child: Text(
+                                  transfer.fromAccountDisplay,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                width: 120,
+                                child: Text(
+                                  transfer.toAccountDisplay,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                width: 100,
+                                child: Text(
+                                  '${transfer.amount.toStringAsFixed(2)} JOD',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: transfer.type == 'إيداع'
+                                        ? Color(0xFFDC2626)
+                                        : Colors.red.shade700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                width: 120,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      DateFormat('yyyy/MM/dd')
+                                          .format(transfer.date),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13),
+                                    ),
+                                    Text(
+                                      DateFormat('HH:mm').format(transfer.date),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 180),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      transfer.notes.isNotEmpty
+                                          ? transfer.notes
+                                          : '-',
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: transfer.notes.isNotEmpty
+                                            ? Colors.black87
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                    if (transfer.relatedTo != null &&
+                                        transfer.relatedTo!.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'متعلق بـ: ${transfer.relatedTo}',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey.shade600,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  constraints:
-                                      const BoxConstraints(maxWidth: 180),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        transfer.notes.isNotEmpty
-                                            ? transfer.notes
-                                            : '-',
+                                        maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        maxLines: 2,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: transfer.notes.isNotEmpty
-                                              ? Colors.black87
-                                              : Colors.grey,
-                                        ),
                                       ),
-                                      if (transfer.relatedTo != null && transfer.relatedTo!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'متعلق بـ: ${transfer.relatedTo}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Theme.of(context).colorScheme.primary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
                                     ],
-                                  ),
+                                  ],
                                 ),
                               ),
-                              DataCell(
-                                Container(
-                                  width: 60,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.edit,
-                                        color: Color(0xFFDC2626), size: 20),
-                                    onPressed: () {
-                                      // TODO: Implement edit functionality
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                            content: Text(
-                                                'سيتم إضافة وظيفة التعديل قريباً')),
-                                      );
-                                    },
-                                    tooltip: 'تعديل الحوالة',
-                                  ),
+                            ),
+                            DataCell(
+                              Container(
+                                width: 80,
+                                child: IconButton(
+                                  icon: const Icon(Icons.cancel_presentation,
+                                      color: Colors.orange, size: 20),
+                                  onPressed: () {
+                                    _showCancelTransferConfirmation(
+                                        context, transfer, appProvider);
+                                  },
+                                  tooltip: 'إلغاء القيد',
                                 ),
                               ),
-                              DataCell(
-                                Container(
-                                  width: 60,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.red, size: 20),
-                                    onPressed: () {
-                                      _showDeleteTransferConfirmation(
-                                          context, transfer, appProvider);
-                                    },
-                                    tooltip: 'حذف الحوالة',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -2057,17 +2054,18 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
     );
   }
 
-  void _showDeleteTransferConfirmation(
+  void _showCancelTransferConfirmation(
       BuildContext context, Transfer transfer, AppProvider appProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
+        title: const Text('تأكيد إلغاء القيد'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('هل أنت متأكد من حذف هذه الحوالة؟'),
+            const Text(
+                'هل أنت متأكد من إلغاء هذا القيد؟ سيتم إضافة قيد معاكس بنفس القيمة مع الإشارة إلى رقم هذا القيد في الملاحظات.'),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(8),
@@ -2091,18 +2089,33 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
+            child: const Text('تراجع'),
           ),
           FilledButton(
             onPressed: () {
-              // TODO: Implement actual deletion
+              final oppositeType = transfer.type == 'إيداع' ? 'سحب' : 'إيداع';
+              final now = DateTime.now().toIso8601String();
+
+              appProvider.addTransfer({
+                'type': oppositeType,
+                'account': transfer.account,
+                'otherAccount': transfer.otherAccount,
+                if (transfer.otherAccountCategory != null)
+                  'otherAccountCategory': transfer.otherAccountCategory!.label,
+                'amount': transfer.amount,
+                'notes': 'إلغاء القيد رقم ${transfer.id}',
+                'date': now,
+                'relatedTo': transfer.id,
+              });
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('سيتم إضافة وظيفة الحذف قريباً')),
+                const SnackBar(content: Text('تم إلغاء القيد بنجاح')),
               );
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('حذف'),
+            style:
+                FilledButton.styleFrom(backgroundColor: Colors.orange.shade700),
+            child: const Text('تأكيد الإلغاء'),
           ),
         ],
       ),

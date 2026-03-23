@@ -30,6 +30,7 @@ import '../models/Shipment.dart';
 import 'NotificationService.dart';
 import '../models/City.dart';
 import '../models/supply_order.dart';
+import '../models/PackageType.dart';
 
 class AppProvider extends ChangeNotifier {
   List<Customer> customers = [];
@@ -67,12 +68,28 @@ class AppProvider extends ChangeNotifier {
   bool autoCollectionEnabled = false;
   List<Map<String, dynamic>> excelConfigs = [];
 
+  List<PackageType> packageTypes = [];
+
+  void listenToPackageTypes() {
+    firebaseHelper.packageTypesStream().listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        if (snapshot.data()!.containsKey('types')) {
+          packageTypes = List<Map<String, dynamic>>.from(snapshot.data()!['types'])
+              .map((e) => PackageType.fromMap(e))
+              .toList();
+          notifyListeners();
+        }
+      }
+    });
+  }
+
   void listenToExcelConfigs() {
     firebaseHelper.getExcelConfigsStream().listen((configs) {
       excelConfigs = configs;
       notifyListeners();
     });
   }
+
   Future<void> addExcelConfig(Map<String, dynamic> config) async {
     await firebaseHelper.addExcelConfig(config);
   }
@@ -84,7 +101,6 @@ class AppProvider extends ChangeNotifier {
   Future<void> deleteExcelConfig(String id) async {
     await firebaseHelper.deleteExcelConfig(id);
   }
-
 
   Future<String> addOrder(Map<String, dynamic> data) async {
     String orderId = await firebaseHelper.addOrder(data,
@@ -565,6 +581,7 @@ class AppProvider extends ChangeNotifier {
     listenToTransfers();
     listenToShelves(); // Add this line
     listenToSettings();
+    listenToPackageTypes();
     // listenToAiUsages();
   }
 
@@ -730,7 +747,7 @@ class AppProvider extends ChangeNotifier {
     firebaseHelper.deleteOrders(selectedOrderIds);
   }
 
-  double calculateDeliveryCostForCity(String cityName, String userId) {
+  double calculateDeliveryCostForCity(String cityName, String userId, {String packageTypeName = 'العادية'}) {
     if (cityName.isEmpty || userId.isEmpty) return 0;
 
     String normalizedInput = Utilities.normalizeArabic(cityName);
@@ -788,6 +805,9 @@ class AppProvider extends ChangeNotifier {
           String routeTo = Utilities.normalizeArabic(route.to);
           String routeFrom = Utilities.normalizeArabic(route.from);
 
+          bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+          if (!typeMatch) return false;
+
           bool toMatch = routeTo == cleanCityName ||
               (normParentCity != null && routeTo == normParentCity);
           bool fromMatch = customerCity != null && routeFrom == customerCity;
@@ -797,7 +817,8 @@ class AppProvider extends ChangeNotifier {
           // Inverse match check
           bool inverseToMatch = routeFrom == cleanCityName ||
               (normParentCity != null && routeFrom == normParentCity);
-          bool inverseFromMatch = customerCity != null && routeTo == customerCity;
+          bool inverseFromMatch =
+              customerCity != null && routeTo == customerCity;
 
           return inverseToMatch && inverseFromMatch;
         },
@@ -813,6 +834,9 @@ class AppProvider extends ChangeNotifier {
               var route = customerRoute.shippingRoute[i];
               String routeTo = Utilities.normalizeArabic(route.to);
               String routeFrom = Utilities.normalizeArabic(route.from);
+
+              bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+              if (!typeMatch) continue;
 
               int scoreTo = ratio(routeTo, cleanCityName);
               int scoreFrom = ratio(routeFrom, cleanCityName);
@@ -856,6 +880,8 @@ class AppProvider extends ChangeNotifier {
             (route) {
               String rtTo = Utilities.normalizeArabic(route.to);
               String rtFrom = Utilities.normalizeArabic(route.from);
+              bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+              if (!typeMatch) return false;
               return rtTo == cleanCityName ||
                   rtFrom == cleanCityName ||
                   (normParentCity != null &&
@@ -890,8 +916,7 @@ class AppProvider extends ChangeNotifier {
         Map<String, dynamic> customer =
             functionCall.args['customer'] as Map<String, dynamic>;
         double deliveryCost = calculateDeliveryCostForCity(
-            functionCall.args['city'].toString(),
-            customer['userId']);
+            functionCall.args['city'].toString(), customer['userId']);
         double? deliveryCostFromFunction =
             functionCall.args["deliveryCost"] as double?;
         print("deliveryCostFromFunction: $deliveryCostFromFunction");
@@ -1042,8 +1067,8 @@ class AppProvider extends ChangeNotifier {
     return await firebaseHelper.reciveReturnOrder(orderId);
   }
 
-  Future<void> updateIsCompanyDeliveryFeePaid(String orderId, bool bool) async {
-   return await firebaseHelper.updateIsCompanyDeliveryFeePaid(orderId, bool);
-    
+  Future<void> updateIsCompanyDeliveryFeePaid(
+      Shipment shipment, bool bool) async {
+    return await firebaseHelper.updateIsCompanyDeliveryFeePaid(shipment, bool);
   }
 }

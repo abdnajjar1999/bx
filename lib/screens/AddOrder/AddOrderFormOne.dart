@@ -80,6 +80,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
   String selectedCollectionMethod = 'كاش';
   String selectedServiceType = 'اعتيادي';
   String selectedPickupLocation = 'من عنوان الزبون';
+  String? selectedPackageType = 'العادية';
   int parcelCount = 1;
   DateTime? deliveryDate;
   DateTime? expectedDeliveryDate;
@@ -519,6 +520,31 @@ class AddOrderFormState extends State<AddOrderFormOne> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            DropdownButtonFormField<String>(
+              value: selectedPackageType,
+              decoration: const InputDecoration(labelText: 'نوع الطرد', border: OutlineInputBorder()),
+              items: [
+                const DropdownMenuItem(value: 'العادية', child: Text('العادية')),
+                ...appProvider.packageTypes.map((pt) {
+                  return DropdownMenuItem(value: pt.name, child: Text(pt.name));
+                }).toList(),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    selectedPackageType = val;
+                    if (val != 'العادية') {
+                      try {
+                        var pt = appProvider.packageTypes.firstWhere((e) => e.name == val);
+                        weightController.text = pt.weight.toString();
+                      } catch (_) {}
+                    }
+                  });
+                  calculateDeliveryCost(appProvider);
+                }
+              },
+            ),
+            SizedBox(height: 16),
             _buildParcelCounter(),
             SizedBox(height: 16),
             Row(
@@ -1520,7 +1546,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     if (selectedCity != null && appProvider.selectedCustomer != null) {
       try {
         double price = appProvider.calculateDeliveryCostForCity(
-            selectedCity!, appProvider.selectedCustomer!.userid);
+            selectedCity!, appProvider.selectedCustomer!.userid, packageTypeName: selectedPackageType ?? 'العادية');
 
         setState(() {
           deliveryCostController.text = price > 0 ? price.toString() : "";

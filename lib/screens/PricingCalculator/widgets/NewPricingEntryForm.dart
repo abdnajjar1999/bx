@@ -27,11 +27,10 @@ class _NewPricingEntryFormState extends State<NewPricingEntryForm> {
   final _formKey = GlobalKey<FormState>();
   String? fromRegion;
   String? toRegion;
-  final TextEditingController _deliveryPriceController =
-      TextEditingController();
+  final TextEditingController _deliveryPriceController = TextEditingController();
   final TextEditingController _returnPriceController = TextEditingController();
-  final TextEditingController _returnBeforeDeliveryPriceController =
-      TextEditingController();
+  final TextEditingController _returnBeforeDeliveryPriceController = TextEditingController();
+  String packageTypeName = 'العادية';
 
   @override
   void initState() {
@@ -39,11 +38,10 @@ class _NewPricingEntryFormState extends State<NewPricingEntryForm> {
     if (widget.initialRoute != null) {
       fromRegion = widget.initialRoute!.from;
       toRegion = widget.initialRoute!.to;
-      _deliveryPriceController.text =
-          widget.initialRoute!.deliveryPrice.toString();
+      _deliveryPriceController.text = widget.initialRoute!.deliveryPrice.toString();
       _returnPriceController.text = widget.initialRoute!.returnPrice.toString();
-      _returnBeforeDeliveryPriceController.text =
-          widget.initialRoute!.returnBeforeDeliveryPrice.toString();
+      _returnBeforeDeliveryPriceController.text = widget.initialRoute!.returnBeforeDeliveryPrice.toString();
+      packageTypeName = widget.initialRoute!.packageTypeName ?? 'العادية';
     }
   }
 
@@ -51,142 +49,96 @@ class _NewPricingEntryFormState extends State<NewPricingEntryForm> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
-      child: Row(
+      child: Column(
         children: [
-          // From Region Dropdown
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: fromRegion,
-              decoration: const InputDecoration(
-                labelText: 'من المنطقة',
-                border: OutlineInputBorder(),
-              ),
-              items: widget.appProvider.cities.map((String region) {
-                return DropdownMenuItem<String>(
-                  value: region,
-                  child: Text(region),
-                );
-              }).toList(),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء اختيار المنطقة';
-                }
-                return null;
-              },
-              onChanged: (String? newValue) {
-                setState(() {
-                  fromRegion = newValue;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // To Region Dropdown
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: toRegion,
-              decoration: const InputDecoration(
-                labelText: 'إلى المنطقة',
-                border: OutlineInputBorder(),
-              ),
-              items: widget.appProvider.cities.map((String region) {
-                return DropdownMenuItem<String>(
-                  value: region,
-                  child: Text(region),
-                );
-              }).toList(),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء اختيار المنطقة';
-                }
-                return null;
-              },
-              onChanged: (String? newValue) {
-                setState(() {
-                  toRegion = newValue;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Delivery Price Input
-          Expanded(
-            child: TextFormField(
-              controller: _deliveryPriceController,
-              decoration: const InputDecoration(
-                labelText: 'سعر التوصيل',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء إدخال السعر';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'الرجاء إدخال رقم صحيح';
-                }
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Return Price Input
-          Expanded(
-            child: TextFormField(
-              controller: _returnPriceController,
-              decoration: const InputDecoration(
-                labelText: 'سعر الإرجاع',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-              ],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء إدخال السعر';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'الرجاء إدخال رقم صحيح';
-                }
-                return null;
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Return Before Delivery Price Input
-          Expanded(
-            child: TextFormField(
-              controller: _returnBeforeDeliveryPriceController,
-              decoration: const InputDecoration(
-                labelText: 'سعر الإرجاع قبل التوصيل',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Action Buttons
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.check, color: Color(0xFFDC2626)),
-                onPressed: _submitForm,
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: packageTypeName,
+                  decoration: const InputDecoration(labelText: 'نوع الطرد', border: OutlineInputBorder()),
+                  items: [
+                    const DropdownMenuItem(value: 'العادية', child: Text('العادية')),
+                    ...widget.appProvider.packageTypes.map((pt) {
+                      return DropdownMenuItem(value: pt.name, child: Text(pt.name));
+                    }).toList(),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => packageTypeName = val);
+                  },
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: widget.onClose,
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: fromRegion,
+                  decoration: const InputDecoration(labelText: 'من المنطقة', border: OutlineInputBorder()),
+                  items: widget.appProvider.cities.map((String region) {
+                    return DropdownMenuItem<String>(value: region, child: Text(region));
+                  }).toList(),
+                  validator: (value) => value == null ? 'الرجاء اختيار المنطقة' : null,
+                  onChanged: (newValue) => setState(() => fromRegion = newValue),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: toRegion,
+                  decoration: const InputDecoration(labelText: 'إلى المنطقة', border: OutlineInputBorder()),
+                  items: widget.appProvider.cities.map((String region) {
+                    return DropdownMenuItem<String>(value: region, child: Text(region));
+                  }).toList(),
+                  validator: (value) => value == null ? 'الرجاء اختيار المنطقة' : null,
+                  onChanged: (newValue) => setState(() => toRegion = newValue),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _deliveryPriceController,
+                  decoration: const InputDecoration(labelText: 'سعر التوصيل', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'الرجاء إدخال السعر';
+                    if (double.tryParse(value) == null) return 'الرجاء إدخال رقم صحيح';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _returnPriceController,
+                  decoration: const InputDecoration(labelText: 'سعر الإرجاع', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'الرجاء إدخال السعر';
+                    if (double.tryParse(value) == null) return 'الرجاء إدخال رقم صحيح';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _returnBeforeDeliveryPriceController,
+                  decoration: const InputDecoration(labelText: 'سعر الإرجاع قبل التوصيل', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                children: [
+                  IconButton(icon: const Icon(Icons.check, color: Color(0xFFDC2626)), onPressed: _submitForm),
+                  IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: widget.onClose),
+                ],
               ),
             ],
           ),
@@ -202,10 +154,8 @@ class _NewPricingEntryFormState extends State<NewPricingEntryForm> {
         to: toRegion!,
         deliveryPrice: double.parse(_deliveryPriceController.text),
         returnPrice: double.parse(_returnPriceController.text),
-        returnBeforeDeliveryPrice:
-            _returnBeforeDeliveryPriceController.text.isEmpty
-                ? 0
-                : double.parse(_returnBeforeDeliveryPriceController.text),
+        returnBeforeDeliveryPrice: _returnBeforeDeliveryPriceController.text.isEmpty ? 0 : double.parse(_returnBeforeDeliveryPriceController.text),
+        packageTypeName: packageTypeName,
       );
 
       widget.onSubmit(newRoute);

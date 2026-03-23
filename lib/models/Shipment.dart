@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:good_line_delivery/models/Shelf.dart';
 import '../models/PriceCalculators.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import '../shared/constants.dart';
 import 'Driver.dart';
@@ -285,9 +287,8 @@ class Shipment {
       status: map['status'] ?? '',
       createdAt: _parseDate(map['createdAt']),
       lastUpdated: _parseDate(map['lastUpdated']),
-      deliveryDate: map['deliveryDate'] != null
-          ? _parseDate(map['deliveryDate'])
-          : null,
+      deliveryDate:
+          map['deliveryDate'] != null ? _parseDate(map['deliveryDate']) : null,
       expectedDeliveryDate: map['expectedDeliveryDate'] != null
           ? _parseDate(map['expectedDeliveryDate'])
           : null,
@@ -522,7 +523,7 @@ class Shipment {
     double payable = 0.0;
 
     if (status == "تم إرجاعها") {
-      if (getMoneyFromUserPalance == true) {
+      if (getMoneyFromUserPalance == true && !isCompanyDeliveryFeePaid) {
         payable = -deliveryCost;
       }
       return payable;
@@ -583,9 +584,3 @@ class Shipment {
     return DateTime.now();
   }
 }
-
-
-
-
-
-

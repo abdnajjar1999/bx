@@ -54,3 +54,4 @@ node_modules/
 .firebaserc
 .env
 functions/node_modules/
+test/

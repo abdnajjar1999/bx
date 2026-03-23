@@ -19,6 +19,7 @@ class ShippingRoute {
   final double deliveryPrice;
   final double returnPrice;
   final double returnBeforeDeliveryPrice;
+  final String? packageTypeName;
 
   ShippingRoute({
     required this.from,
@@ -26,6 +27,7 @@ class ShippingRoute {
     required this.deliveryPrice,
     required this.returnPrice,
     required this.returnBeforeDeliveryPrice,
+    this.packageTypeName = 'العادية',
   });
   toJson() => {
         'from': from,
@@ -33,6 +35,7 @@ class ShippingRoute {
         'deliveryPrice': deliveryPrice,
         'returnPrice': returnPrice,
         'returnBeforeDeliveryPrice': returnBeforeDeliveryPrice,
+        'packageTypeName': packageTypeName ?? 'العادية',
       };
   factory ShippingRoute.fromJson(Map<String, dynamic> json) => ShippingRoute(
         from: json["from"],
@@ -46,6 +49,7 @@ class ShippingRoute {
         returnBeforeDeliveryPrice: json["returnBeforeDeliveryPrice"] != null
             ? double.parse(json["returnBeforeDeliveryPrice"].toString())
             : 0.0,
+        packageTypeName: json["packageTypeName"] ?? 'العادية',
       );
 
   factory ShippingRoute.fromCsv(List<dynamic> row) {

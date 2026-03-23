@@ -1,11 +1,12 @@
 // import 'package:durub_ali/aiAgent/aiAgentSidePanal.dart';
 // import 'package:durub_ali/aiAgent/tools.dart';
+import 'package:good_line_delivery/screens/settings/ExcelImportSettingsScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:good_line_delivery/aiAgent/aiAgentSidePanal.dart';
 import 'package:good_line_delivery/aiAgent/tools.dart';
 import 'package:good_line_delivery/screens/dashboard/header/showSideDrawerDialog.dart';
 
-import '../../settings/ExcelImportSettingsScreen.dart';
+import '../settings/PackageTypesScreen.dart';
 import '../PricingCalculator/driverPricingCalculator.dart';
 import '../aiUsage/AiUsageScreen.dart';
 
@@ -372,6 +373,8 @@ class _dashboardState extends State<dashboard> {
         return EmployeesScreen();
       case 30:
         return ExcelImportSettingsScreen();
+      case 31:
+        return PackageTypesScreen();
       default:
         // Fallback for any unexpected index values
         return dashboardScreen(); // Return default dashboard as fallback

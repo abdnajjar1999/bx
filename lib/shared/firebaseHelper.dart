@@ -533,6 +533,16 @@ class FirebaseHelper {
     return _fireStore.collection('configs').doc('areas').snapshots();
   }
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> packageTypesStream() {
+    return _fireStore.collection('configs').doc('packageTypes').snapshots();
+  }
+
+  Future<void> updatePackageTypes(List<Map<String, dynamic>> packageTypes) async {
+    await _fireStore.collection('configs').doc('packageTypes').set({
+      'types': packageTypes
+    }, SetOptions(merge: true));
+  }
+
   Stream<QuerySnapshot<Map<String, dynamic>>> priceCalculatorStream(
       bool isDriver) {
     return _fireStore
@@ -1618,12 +1628,13 @@ class FirebaseHelper {
     }
   }
 
-  updateIsCompanyDeliveryFeePaid(String orderId, bool bool) {
-    _fireStore.collection('orders').doc(orderId).update({
+  updateIsCompanyDeliveryFeePaid(Shipment shipment, bool bool) {
+    _fireStore.collection('orders').doc(shipment.orderId).update({
       'isCompanyDeliveryFeePaid': bool,
       if (bool) 'isDeliveryFeeOnRecipient': false,
-      "status": "الطلبات الجديدة",
-      "notes":""
+      if (shipment.status == "بانتظار مراجعة الإدارة")
+        "status": "الطلبات الجديدة",
+      "notes": ""
     });
   }
 }

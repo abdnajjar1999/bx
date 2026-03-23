@@ -160,6 +160,7 @@ class SideDrawer extends StatelessWidget {
                   title: 'الإعدادات',
                   children: [
                     _buildSubTile(30, Icons.import_export_outlined),
+                    _buildSubTile(31, Icons.category_outlined),
                   ],
                 ),
               ],

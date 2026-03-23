@@ -30,6 +30,81 @@ class _PriceCalculatorState extends State<PriceCalculator> {
     super.dispose();
   }
 
+  Widget _buildGroupedPricingTables(AppProvider appProvider) {
+    if (appProvider.selectedShippingRoute == null ||
+        appProvider.selectedShippingRoute!.shippingRoute.isEmpty) {
+      return Center(child: Padding(padding: EdgeInsets.all(20), child: Text('لا توجد تسعيرات متوفرة')));
+    }
+
+    // Group routes by packageTypeName
+    Map<String, List<ShippingRoute>> groupedRoutes = {};
+    for (var route in appProvider.selectedShippingRoute!.shippingRoute) {
+      String type = route.packageTypeName ?? 'العادية';
+      if (!groupedRoutes.containsKey(type)) {
+        groupedRoutes[type] = [];
+      }
+      groupedRoutes[type]!.add(route);
+    }
+
+    return Column(
+      children: groupedRoutes.entries.map((entry) {
+        String typeName = entry.key;
+        List<ShippingRoute> routes = entry.value;
+
+        return ExpansionTile(
+          initiallyExpanded: true,
+          title: Text(
+            'تسعيرة $typeName',
+            style: TextStyle(fontWeight: FontWeight.bold, color: primary),
+          ),
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                  columns: const [
+                    DataColumn(label: SizedBox(width: 30)),
+                    DataColumn(label: Text('من المنطقة')),
+                    DataColumn(label: Padding(padding: EdgeInsets.all(8.0), child: Text('إلى المنطقة'))),
+                    DataColumn(label: Padding(padding: EdgeInsets.all(8.0), child: Text('سعر التوصيل'))),
+                    DataColumn(label: Padding(padding: EdgeInsets.all(8.0), child: Text('سعر الإرجاع'))),
+                    DataColumn(label: Padding(padding: EdgeInsets.all(8.0), child: Text('سعر الإرجاع قبل التوصيل'))),
+                    DataColumn(label: Padding(padding: EdgeInsets.all(8.0), child: Text(''))),
+                  ],
+                  rows: routes.map((route) => DataRow(
+                      cells: [
+                        const DataCell(Icon(Icons.arrow_forward)),
+                        DataCell(Text(route.from)),
+                        DataCell(Text(route.to)),
+                        DataCell(Text(route.deliveryPrice.toString())),
+                        DataCell(Text(route.returnPrice.toString())),
+                        DataCell(route.returnBeforeDeliveryPrice > 0 ? Text(route.returnBeforeDeliveryPrice.toString()) : const Text('0')),
+                        DataCell(Row(
+                          children: [
+                            IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _editingRoute = route;
+                                    _showNewPricingForm = true;
+                                  });
+                                },
+                                icon: Icon(Icons.edit, color: primary)),
+                            IconButton(
+                                onPressed: () {
+                                  appProvider.deleteShippingRoute(route);
+                                },
+                                icon: Icon(Icons.delete, color: Colors.red[400])),
+                          ],
+                        )),
+                      ],
+                  )).toList(),
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(builder: (context, appProvider, child) {
@@ -204,74 +279,10 @@ class _PriceCalculatorState extends State<PriceCalculator> {
               ],
             ),
             Expanded(
-                child: SingleChildScrollView(
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: SizedBox(width: 30)),
-                  DataColumn(label: Text('من المنطقة')),
-                  DataColumn(
-                      label: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text('إلى المنطقة'),
-                  )),
-                  DataColumn(
-                      label: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text('سعر التوصيل'),
-                  )),
-                  DataColumn(
-                      label: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text('سعر الإرجاع'),
-                  )),
-                  DataColumn(
-                      label: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text('سعر الإرجاع قبل التوصيل'),
-                  )),
-                  DataColumn(
-                      label: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(''),
-                  )),
-                ],
-                rows: appProvider.selectedShippingRoute?.shippingRoute
-                        .map((route) => DataRow(
-                              cells: [
-                                const DataCell(Icon(Icons.arrow_forward)),
-                                DataCell(Text(route.from)),
-                                DataCell(Text(route.to)),
-                                DataCell(Text(route.deliveryPrice.toString())),
-                                DataCell(Text(route.returnPrice.toString())),
-                                DataCell(route.returnBeforeDeliveryPrice > 0
-                                    ? Text(route.returnBeforeDeliveryPrice
-                                        .toString())
-                                    : const Text('0')),
-                                DataCell(Row(
-                                  children: [
-                                    IconButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _editingRoute = route;
-                                            _showNewPricingForm = true;
-                                          });
-                                        },
-                                        icon: Icon(Icons.edit, color: primary)),
-                                    IconButton(
-                                        onPressed: () {
-                                          appProvider
-                                              .deleteShippingRoute(route);
-                                        },
-                                        icon: Icon(Icons.delete,
-                                            color: Colors.red[400])),
-                                  ],
-                                )),
-                              ],
-                            ))
-                        .toList() ??
-                    [],
+              child: SingleChildScrollView(
+                child: _buildGroupedPricingTables(appProvider),
               ),
-            )),
+            ),
             if (_showNewPricingForm)
               NewPricingEntryForm(
                 appProvider: appProvider,
