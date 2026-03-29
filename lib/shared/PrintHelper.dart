@@ -770,7 +770,12 @@ class PrintHandler {
                                   '${shipment.status != 'تم إرجاعها' ? (shipment.codAmount ?? 0) : 0}',
                                   arabicFont),
                               _buildPdfCell(
-                                  '${shipment.deliveryCost ?? 0}', arabicFont),
+                                  shipment.status == 'تم إرجاعها'
+                                      ? (shipment.getMoneyFromUserPalance
+                                          ? shipment.deliveryCost.toString()
+                                          : "0")
+                                      : '-',
+                                  arabicFont),
                               _buildPdfCell(
                                   '${(shipment.status != 'تم إرجاعها' ? ((shipment.codAmount ?? 0) - (shipment.deliveryCost ?? 0)) : (shipment.deliveryCost ?? 0)).toStringAsFixed(2)}',
                                   arabicFont),

@@ -67,20 +67,15 @@ class SideDrawer extends StatelessWidget {
                 ),
                 customListTile(
                   icon: Icons.assignment_return_outlined,
-                  title: 'الطلبات المرتجعة',
+                  title: 'إدارة الرواجع',
                   children: [
-                    customListTile(
-                      selected: selectedIndex == 17,
-                      icon: Icons.domain_outlined,
-                      title: drawerTitles[17],
-                      onTap: () => onTileSelected(17),
-                    ),
-                    customListTile(
-                      selected: selectedIndex == 16,
-                      icon: Icons.people_outline,
-                      title: drawerTitles[16],
-                      onTap: () => onTileSelected(16),
-                    ),
+                    _buildSubTile(32, Icons.domain_outlined),
+                    _buildSubTile(33, Icons.list_alt_outlined),
+                    _buildSubTile(34, Icons.swap_horiz_outlined),
+                    _buildSubTile(35, Icons.pie_chart_outline),
+                    _buildSubTile(36, Icons.local_shipping_outlined),
+                    _buildSubTile(37, Icons.drive_eta_outlined),
+                    _buildSubTile(38, Icons.person_outline),
                   ],
                 ),
                 customListTile(

@@ -125,17 +125,36 @@ class _DriversScreenState extends State<DriversScreen> {
                 role: "سائق",
                 cities: driver.cities,
                 profileImage: driver.profileImage,
+                driverId: driver.driverId,
                 onTapAccept: driver.status == "داخل الخدمة"
                     ? null
                     : () async{
-                       await FirebaseFirestore.instance
+                        final driversSnap = await FirebaseFirestore.instance
+                            .collection("drivers")
+                            .get();
+                        int maxId = 0;
+                        for (var doc in driversSnap.docs) {
+                          var data = doc.data();
+                          if (data.containsKey('driverId') && data['driverId'] != null) {
+                            int? id = int.tryParse(data['driverId'].toString());
+                            if (id != null && id > maxId) {
+                              maxId = id;
+                            }
+                          }
+                        }
+                        String newDriverId = (maxId + 1).toString();
+
+                        await FirebaseFirestore.instance
                             .collection("drivers")
                             .doc(driver.userid)
-                            .update({"status": "داخل الخدمة"});
+                            .update({
+                              "status": "داخل الخدمة",
+                              "driverId": newDriverId,
+                            });
                         appProvider.getDrivers();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('تم قبول الزبون بنجاح')),
+                              content: Text('تم قبول السائق بنجاح')),
                         );
                       },
                 onTapDetails: () {
@@ -160,6 +179,7 @@ class _DriversScreenState extends State<DriversScreen> {
     required VoidCallback onTapDetails,
     VoidCallback? onTapAccept,
     String? profileImage,
+    String? driverId,
   }) {
     return Card(
       elevation: 2,
@@ -265,6 +285,23 @@ class _DriversScreenState extends State<DriversScreen> {
                           ),
                         ),
                       ),
+                      if (driverId != null && driverId.isNotEmpty)
+                        Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "ID: $driverId",
+                            style: TextStyle(
+                              color: Colors.blue[800],
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),

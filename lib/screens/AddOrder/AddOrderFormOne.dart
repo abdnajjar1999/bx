@@ -9,6 +9,7 @@ import '../../shared/PrintHelper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:provider/provider.dart';
 import '../../models/supply_order.dart';
@@ -96,8 +97,32 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     super.initState();
     _isEditMode = widget.shipment != null;
     _initializeFormData();
+    if (kDebugMode) {
+      _fillDummyData();
+    }
   }
 
+  void _fillDummyData() {
+    if (kDebugMode) {
+      deliveryCostController.text = "15";
+      addressDescController.text = "شارع مكة، عمارة 10، الطابق الثاني";
+      recipientNameController.text = "محمد أحمد";
+      phoneController.text = "0791234567";
+      codAmountController.text = "150";
+      trackingNumberController.text =
+          "TRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
+      contentController.text = "ملابس وأحذية";
+      weightController.text = "2.5";
+      notesController.text = "الرجاء الاتصال قبل التوصيل بنصف ساعة";
+
+      setState(() {
+        parcelCount = 2;
+        selectedPaymentMethod = 'COD';
+        selectedCollectionMethod = 'كاش';
+        selectedServiceType = 'اعتيادي';
+      });
+    }
+  }
 
   void _initializeFormData() {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
@@ -396,20 +421,20 @@ class AddOrderFormState extends State<AddOrderFormOne> {
               isFragile: false,
               needsPackaging: false,
               hasDangerousMaterials: false,
-            isNonOpenable: false,
-            canBeFolded: false,
-            measurementForbidden: false,
-          );
-          showInventorySection = false;
-          selectedInventoryItems.clear();
-          _availableSupplyOrders.clear();
-          _selectedSupplyQuantities.clear();
-          
-          isDeliveryFeeOnRecipient = true;
-          isCompanyDeliveryFeePaid = false;
-          isPayToRecipient = false;
-        });
-        break;
+              isNonOpenable: false,
+              canBeFolded: false,
+              measurementForbidden: false,
+            );
+            showInventorySection = false;
+            selectedInventoryItems.clear();
+            _availableSupplyOrders.clear();
+            _selectedSupplyQuantities.clear();
+
+            isDeliveryFeeOnRecipient = true;
+            isCompanyDeliveryFeePaid = false;
+            isPayToRecipient = false;
+          });
+          break;
       }
     } catch (e) {
       if (mounted) {
@@ -522,9 +547,11 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           children: [
             DropdownButtonFormField<String>(
               value: selectedPackageType,
-              decoration: const InputDecoration(labelText: 'نوع الطرد', border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                  labelText: 'نوع الطرد', border: OutlineInputBorder()),
               items: [
-                const DropdownMenuItem(value: 'العادية', child: Text('العادية')),
+                const DropdownMenuItem(
+                    value: 'العادية', child: Text('العادية')),
                 ...appProvider.packageTypes.map((pt) {
                   return DropdownMenuItem(value: pt.name, child: Text(pt.name));
                 }).toList(),
@@ -535,7 +562,8 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                     selectedPackageType = val;
                     if (val != 'العادية') {
                       try {
-                        var pt = appProvider.packageTypes.firstWhere((e) => e.name == val);
+                        var pt = appProvider.packageTypes
+                            .firstWhere((e) => e.name == val);
                         weightController.text = pt.weight.toString();
                       } catch (_) {}
                     }
@@ -929,18 +957,19 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 items: selectedCity != null
                     ? appProvider.citiesAndPlaces
                         .firstWhere((c) => c.name == selectedCity,
-                            orElse: () =>
-                                City(name: selectedCity!, places: []))
+                            orElse: () => City(name: selectedCity!, places: []))
                         .places
                     : [],
                 onChanged: (value) {
                   setState(() {
                     selectedRegion = value;
-                    selectedCityPlace = (selectedCity ?? "") + " " + (value ?? "");
+                    selectedCityPlace =
+                        (selectedCity ?? "") + " " + (value ?? "");
                   });
                   _cheakForDriver(appProvider);
                 },
-                searchController: TextEditingController(), // Separate controller if needed
+                searchController:
+                    TextEditingController(), // Separate controller if needed
                 hint: 'اختر المنطقة',
               ),
             ),
@@ -991,14 +1020,15 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                 items: paymentMethods,
                 onChanged: (value) {
                   setState(() {
-                     selectedPaymentMethod = value!;
-                     if (selectedPaymentMethod == 'مدفوعة مسبقا') {
-                       isDeliveryFeeOnRecipient = true;
-                       isCompanyDeliveryFeePaid = false;
-                       codAmountController.text = '0';
-                     } else if (selectedPaymentMethod == 'تبديل' || selectedPaymentMethod == 'إحضار') {
-                       isPayToRecipient = false;
-                     }
+                    selectedPaymentMethod = value!;
+                    if (selectedPaymentMethod == 'مدفوعة مسبقا') {
+                      isDeliveryFeeOnRecipient = true;
+                      isCompanyDeliveryFeePaid = false;
+                      codAmountController.text = '0';
+                    } else if (selectedPaymentMethod == 'تبديل' ||
+                        selectedPaymentMethod == 'إحضار') {
+                      isPayToRecipient = false;
+                    }
                   });
                 },
                 searchController: paymentMethodSearchController,
@@ -1017,127 +1047,139 @@ class AddOrderFormState extends State<AddOrderFormOne> {
             ),
           ],
         ),
-        
+
         // Conditionally show extra payment controls
         if (selectedPaymentMethod == 'مدفوعة مسبقا') _buildPrepaidSection(),
-        if (selectedPaymentMethod == 'تبديل' || selectedPaymentMethod == 'إحضار') _buildExchangeOrPickupSection(),
+        if (selectedPaymentMethod == 'تبديل' ||
+            selectedPaymentMethod == 'إحضار')
+          _buildExchangeOrPickupSection(),
       ],
     );
   }
 
   Widget _buildPrepaidSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16,),
-        _buildSectionTitle('خيارات مسار الدفع'),
-        _buildSwitch(
-          'المستلم سيدفع سعر التوصيل',
-          isDeliveryFeeOnRecipient,
-          (value) => setState(() {
-            isDeliveryFeeOnRecipient = value;
-            if (value) {
-              isCompanyDeliveryFeePaid = false;
-            }
-          }),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        height: 16,
+      ),
+      _buildSectionTitle('خيارات مسار الدفع'),
+      _buildSwitch(
+        'المستلم سيدفع سعر التوصيل',
+        isDeliveryFeeOnRecipient,
+        (value) => setState(() {
+          isDeliveryFeeOnRecipient = value;
+          if (value) {
+            isCompanyDeliveryFeePaid = false;
+          }
+        }),
+      ),
+      if (!isDeliveryFeeOnRecipient)
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 8),
+            Text('طريقة دفع البائع لتسديد رسوم التوصيل',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: ListTile(
+                    title: Text('دفع من رصيد البائع',
+                        style: TextStyle(fontSize: 13)),
+                    leading: Radio<bool>(
+                      value:
+                          false, // isCompanyDeliveryFeePaid = false means from seller balance
+                      groupValue: isCompanyDeliveryFeePaid,
+                      onChanged: hasUnclosedOrders
+                          ? (value) {
+                              setState(() => isCompanyDeliveryFeePaid = value!);
+                            }
+                          : null, // Disable if no unclosed orders
+                      activeColor: Color(0xFFDC2626),
+                    ),
+                    subtitle: !hasUnclosedOrders
+                        ? Text(
+                            'غير متاح حاليا الا اذا كان يوجد طلبات سابقة غير مقفلة',
+                            style: TextStyle(fontSize: 11, color: Colors.grey))
+                        : null,
+                  ),
+                ),
+                Expanded(
+                  child: ListTile(
+                    title: Text('دفع كاش', style: TextStyle(fontSize: 13)),
+                    leading: Radio<bool>(
+                      value:
+                          true, // isCompanyDeliveryFeePaid = true means cash paid to company directly
+                      groupValue: isCompanyDeliveryFeePaid,
+                      onChanged: (value) {
+                        setState(() => isCompanyDeliveryFeePaid = value!);
+                      },
+                      activeColor: Color(0xFFDC2626),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        if (!isDeliveryFeeOnRecipient)
-           Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               SizedBox(height: 8),
-               Text('طريقة دفع البائع لتسديد رسوم التوصيل', style: TextStyle(fontWeight: FontWeight.bold)),
-               Row(
-                 children: [
-                   Expanded(
-                     child: ListTile(
-                       title: Text('دفع من رصيد البائع', style: TextStyle(fontSize: 13)),
-                       leading: Radio<bool>(
-                         value: false, // isCompanyDeliveryFeePaid = false means from seller balance
-                         groupValue: isCompanyDeliveryFeePaid,
-                         onChanged: hasUnclosedOrders ? (value) {
-                           setState(() => isCompanyDeliveryFeePaid = value!);
-                         } : null, // Disable if no unclosed orders
-                         activeColor: Color(0xFFDC2626),
-                       ),
-                       subtitle: !hasUnclosedOrders ? Text('غير متاح حاليا الا اذا كان يوجد طلبات سابقة غير مقفلة', style: TextStyle(fontSize: 11, color: Colors.grey)) : null,
-                     ),
-                   ),
-                   Expanded(
-                     child: ListTile(
-                       title: Text('دفع كاش', style: TextStyle(fontSize: 13)),
-                       leading: Radio<bool>(
-                         value: true, // isCompanyDeliveryFeePaid = true means cash paid to company directly
-                         groupValue: isCompanyDeliveryFeePaid,
-                         onChanged: (value) {
-                           setState(() => isCompanyDeliveryFeePaid = value!);
-                         },
-                         activeColor: Color(0xFFDC2626),
-                       ),
-                     ),
-                   ),
-                 ],
-               ),
-             ],
-           ),
-      ]
-    );
+    ]);
   }
 
   Widget _buildExchangeOrPickupSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16,),
-        _buildSectionTitle('خيارات التحصيل'),
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: _buildTextField(
-                controller: codAmountController,
-                label: selectedPaymentMethod == 'تبديل' ? 'قيمة الفرق/الاستبدال' : 'المبلغ المطلوب',
-                keyboardType: TextInputType.number,
-              ),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        height: 16,
+      ),
+      _buildSectionTitle('خيارات التحصيل'),
+      Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: _buildTextField(
+              controller: codAmountController,
+              label: selectedPaymentMethod == 'تبديل'
+                  ? 'قيمة الفرق/الاستبدال'
+                  : 'المبلغ المطلوب',
+              keyboardType: TextInputType.number,
             ),
-            SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Radio<bool>(
-                        value: false, // isPayToRecipient = false
-                        groupValue: isPayToRecipient,
-                        onChanged: (value) {
-                          setState(() => isPayToRecipient = value!);
-                        },
-                        activeColor: Color(0xFFDC2626),
-                      ),
-                      Text('تحصيل من المستلم', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Radio<bool>(
-                        value: true, // isPayToRecipient = true
-                        groupValue: isPayToRecipient,
-                        onChanged: (value) {
-                          setState(() => isPayToRecipient = value!);
-                        },
-                        activeColor: Color(0xFFDC2626),
-                      ),
-                      Text('الدفع للمستلم', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Radio<bool>(
+                      value: false, // isPayToRecipient = false
+                      groupValue: isPayToRecipient,
+                      onChanged: (value) {
+                        setState(() => isPayToRecipient = value!);
+                      },
+                      activeColor: Color(0xFFDC2626),
+                    ),
+                    Text('تحصيل من المستلم', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Radio<bool>(
+                      value: true, // isPayToRecipient = true
+                      groupValue: isPayToRecipient,
+                      onChanged: (value) {
+                        setState(() => isPayToRecipient = value!);
+                      },
+                      activeColor: Color(0xFFDC2626),
+                    ),
+                    Text('الدفع للمستلم', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ],
             ),
-          ],
-        )
-      ]
-    );
+          ),
+        ],
+      )
+    ]);
   }
 
   Widget _buildServiceSection() {
@@ -1546,7 +1588,8 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     if (selectedCity != null && appProvider.selectedCustomer != null) {
       try {
         double price = appProvider.calculateDeliveryCostForCity(
-            selectedCity!, appProvider.selectedCustomer!.userid, packageTypeName: selectedPackageType ?? 'العادية');
+            selectedCity!, appProvider.selectedCustomer!.userid,
+            packageTypeName: selectedPackageType ?? 'العادية');
 
         setState(() {
           deliveryCostController.text = price > 0 ? price.toString() : "";
@@ -1622,6 +1665,12 @@ class AddOrderFormState extends State<AddOrderFormOne> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (kDebugMode)
+                    IconButton(
+                      icon: Icon(Icons.bug_report, color: Colors.blue),
+                      onPressed: _fillDummyData,
+                      tooltip: 'تعبئة بيانات تجريبية',
+                    ),
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -1681,7 +1730,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
       if (mounted) {
         setState(() {
-           hasUnclosedOrders = snapshot.docs.isNotEmpty;
+          hasUnclosedOrders = snapshot.docs.isNotEmpty;
         });
       }
     } catch (e) {
@@ -1689,4 +1738,3 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     }
   }
 }
-

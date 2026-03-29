@@ -121,6 +121,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                 driverShare: employee.driverShare?.toString() ?? "0.0",
                 role: employee.jobRole ?? "موظف",
                 cities: employee.cities,
+                driverId: employee.driverId,
                 onTapDetails: () {
                   showDialog(
                     context: context,
@@ -142,6 +143,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     required String role,
     required List<String> cities,
     required VoidCallback onTapDetails,
+    String? driverId,
   }) {
     return Card(
       elevation: 2,
@@ -218,6 +220,23 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                       //     ),
                       //   ),
                       // ),
+                      if (driverId != null && driverId.isNotEmpty)
+                        Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            "ID: $driverId",
+                            style: TextStyle(
+                              color: Colors.blue[800],
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 8),

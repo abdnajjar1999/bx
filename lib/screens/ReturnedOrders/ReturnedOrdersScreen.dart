@@ -11,9 +11,11 @@ import '../../models/customer.dart';
 import '../../shared/appProvider.dart';
 import '../../shared/ExcelImportHandler.dart';
 import '../../utils/file_handler.dart';
+import '../ManageShipments/DeliveryReceiveDialog.dart';
 
 class ReturnedOrdersScreen extends StatefulWidget {
-  const ReturnedOrdersScreen({super.key});
+  final int sectionIndex;
+  const ReturnedOrdersScreen({super.key, this.sectionIndex = 17});
 
   @override
   State<ReturnedOrdersScreen> createState() => _ReturnedOrdersScreenState();
@@ -41,6 +43,31 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ReturnedOrdersScreen oldWidget) {
+    if (oldWidget.sectionIndex != widget.sectionIndex) {
+      loadReturnedShipments();
+    }
+    super.didUpdateWidget(oldWidget);
+  }
+
+  String get dynamicTitle {
+    switch (widget.sectionIndex) {
+      case 32:
+        return 'شاشة استلام الطرود';
+      case 33:
+        return 'الرواجع';
+      case 34:
+        return 'رواجع التبديل';
+      case 35:
+        return 'رواجع التوصيل الجزئي';
+      case 36:
+        return 'طرود الاحضار';
+      default:
+        return 'مرتجع في الفرع';
+    }
   }
 
   void _applyFilters() {
@@ -78,20 +105,39 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
         return matchesSearch && matchesCity && matchesMerchant && matchesDate;
       }).toList();
 
-      // Clear selected orders if they are no longer in filtered list
       selectedOrders.removeWhere((s) => !filteredShipments.contains(s));
     });
   }
 
   Future<void> loadReturnedShipments() async {
     try {
-      FirebaseFirestore.instance
-          .collection('orders')
-          .where('status', isEqualTo: 'تم إرجاعها')
-          .where('cashPossession', isEqualTo: 'customer')
-          .where('orderPossession', isEqualTo: 'branch')
-          .snapshots()
-          .listen((snapshot) {
+      Query<Map<String, dynamic>> query =
+          FirebaseFirestore.instance.collection('orders');
+
+      if (widget.sectionIndex == 35) {
+        query = query
+            .where('status', isEqualTo: 'تم توصيلها بشكل جزئي')
+            .where('orderPossession', isEqualTo: 'branch');
+      } else if (widget.sectionIndex == 34 || widget.sectionIndex == 36) {
+        query = query
+            .where('status', isEqualTo: 'تم توصيلها')
+            .where('orderPossession', isEqualTo: 'branch');
+        if (widget.sectionIndex == 34) {
+          query = query.where('paymentMethod', isEqualTo: 'تبديل');
+        } else if (widget.sectionIndex == 36) {
+          query = query.where('paymentMethod', isEqualTo: 'إحضار');
+        }
+      } else {
+        query = query
+            .where('status', isEqualTo: 'تم إرجاعها')
+            .where('orderPossession', isEqualTo: 'branch');
+      }
+
+      if (widget.sectionIndex != 35 && widget.sectionIndex != 32) {
+        query = query.where('cashPossession', isEqualTo: 'customer');
+      }
+
+      query.snapshots().listen((snapshot) {
         if (!mounted) return;
         setState(() {
           returnedShipments = snapshot.docs
@@ -114,25 +160,18 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
 
   Future<void> handleAssignToDriver() async {
     if (selectedOrders.isEmpty) return;
-
     final appProvider = Provider.of<AppProvider>(context, listen: false);
-
     final selectedDriver = await showDialog<Driver>(
       context: context,
       builder: (context) =>
           _DriverSelectionDialog(drivers: appProvider.drivers),
     );
-
     if (selectedDriver == null) return;
-
     setState(() => isProcessing = true);
-
     PrintHandler().printShipmentsDocument(selectedOrders.toList(),
         driverName: selectedDriver.username);
-
     try {
       final batch = FirebaseFirestore.instance.batch();
-
       for (var shipment in selectedOrders) {
         final orderRef = FirebaseFirestore.instance
             .collection('orders')
@@ -144,12 +183,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
           'otp': Random().nextInt(9000) + 1000,
         });
       }
-
       await batch.commit();
-
       final orderCount = selectedOrders.length;
       setState(() => selectedOrders.clear());
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
@@ -167,21 +203,100 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final appProvider = Provider.of<AppProvider>(context);
-
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        title: const Text('مرتجع في الفرع',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(dynamicTitle,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: primary,
         elevation: 0,
-        actions: [
-          if (filteredShipments.isNotEmpty)
+      ),
+      body: Column(
+        children: [
+          _buildTopActionButtons(),
+          _buildFilterBar(appProvider),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator(color: primary))
+                : _buildOrderTable(), // Changed from List to Table
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopActionButtons() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: Colors.white,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (widget.sectionIndex == 32)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.download, color: Colors.white),
+                label: const Text('استلام الطرود المرجعة',
+                    style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF24645)),
+                onPressed: () {
+                  showDeliveryDialog(context, 1);
+                },
+              ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.send, color: Colors.white),
+              label: const Text('تسليم إلى المرسل',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFECAAA4)),
+              onPressed: () {
+                if (selectedOrders.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('حدد طلبات أولاً')));
+                  return;
+                }
+                // Future feature logic
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(const SnackBar(content: Text('قيد التطوير')));
+              },
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.local_shipping, color: Colors.white),
+              label: const Text('تحميل مع السائق',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0B880)),
+              onPressed: isProcessing ? null : handleAssignToDriver,
+            ),
+            const SizedBox(width: 16),
+            if (selectedOrders.isNotEmpty) ...[
+              IconButton(
+                icon: const Icon(Icons.print, color: primary),
+                onPressed: () => PrintHandler()
+                    .printShipmentsDocument(selectedOrders.toList()),
+                tooltip: 'طباعة المحدد',
+              ),
+              IconButton(
+                icon: const Icon(Icons.file_download, color: Colors.green),
+                onPressed: () async {
+                  final excel = await ExcelImportHandler()
+                      .exportShipmentsToExcel(selectedOrders.toList());
+                  await FileHandler.downloadFile(
+                      excel, 'returned_orders_selection.xlsx');
+                },
+                tooltip: 'تصدير المحدد',
+              ),
+            ],
             TextButton(
               onPressed: () {
                 setState(() {
-                  if (selectedOrders.length == filteredShipments.length) {
+                  if (selectedOrders.length == filteredShipments.length &&
+                      filteredShipments.isNotEmpty) {
                     selectedOrders.clear();
                   } else {
                     selectedOrders = filteredShipments.toSet();
@@ -189,92 +304,30 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                 });
               },
               child: Text(
-                selectedOrders.length == filteredShipments.length
+                selectedOrders.length == filteredShipments.length &&
+                        filteredShipments.isNotEmpty
                     ? 'إلغاء الكل'
                     : 'تحديد الكل',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(
+                    color: primary, fontWeight: FontWeight.bold),
               ),
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildTopStats(),
-          _buildFilterBar(appProvider),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator(color: primary))
-                : _buildOrderList(),
-          ),
-          if (selectedOrders.isNotEmpty) _buildSelectionActionFrame(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopStats() {
-    double totalCost =
-        filteredShipments.fold(0, (sum, item) => sum + item.deliveryCost);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: const BoxDecoration(
-        color: primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          ],
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatCard('إجمالي الطلبات', '${filteredShipments.length}',
-              Icons.inventory_2),
-          _buildStatCard(
-              'مجموع تكاليف الإرجاع',
-              '${totalCost.toStringAsFixed(1)} د.أ',
-              Icons.account_balance_wallet),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: secprimary, size: 28),
-          const SizedBox(height: 8),
-          Text(value,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.white.withOpacity(0.7), fontSize: 12)),
-        ],
       ),
     );
   }
 
   Widget _buildFilterBar(AppProvider provider) {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-        ],
-      ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)
+          ]),
       child: Column(
         children: [
           TextField(
@@ -284,13 +337,14 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
               hintText: 'ابحث برقم الطلب، العميل، التاجر، أو الهاتف...',
               prefixIcon: const Icon(Icons.search, color: primary),
               filled: true,
-              fillColor: background.withOpacity(0.5),
+              fillColor: background,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -313,7 +367,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                   label: _selectedMerchantId == null
                       ? 'التاجر'
                       : provider.customers
-                          .firstWhere((c) => c.userid == _selectedMerchantId)
+                          .firstWhere(
+                            (c) => c.userid == _selectedMerchantId,
+                          )
                           .username,
                   icon: Icons.person,
                   onTap: () => _selectMerchant(provider),
@@ -351,113 +407,87 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(left: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? primary : background,
-          borderRadius: BorderRadius.circular(12),
-        ),
+            color: isActive ? primary : background,
+            borderRadius: BorderRadius.circular(10)),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: isActive ? Colors.white : primary),
+            Icon(icon, size: 14, color: isActive ? Colors.white : primary),
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
-                    color: isActive ? Colors.white : primary, fontSize: 13)),
+                    color: isActive ? Colors.white : primary, fontSize: 12)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOrderList() {
+  Widget _buildOrderTable() {
     if (filteredShipments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2_outlined,
-                size: 64, color: Colors.grey.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            const Text('لا يوجد طلبات تطابق الفلتر',
-                style: TextStyle(color: Colors.grey, fontSize: 16)),
-          ],
-        ),
-      );
+      return const Center(
+          child: Text('لا يوجد طلبات تطابق الفلتر',
+              style: TextStyle(color: Colors.grey, fontSize: 16)));
     }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: filteredShipments.length,
-      itemBuilder: (context, index) {
-        final shipment = filteredShipments[index];
-        final isSelected = selectedOrders.contains(shipment);
-
-        return _buildShipmentCard(shipment, isSelected);
-      },
-    );
-  }
-
-  Widget _buildShipmentCard(Shipment shipment, bool isSelected) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: isSelected ? 4 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-            color: isSelected ? primary : Colors.transparent, width: 2),
-      ),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            if (isSelected)
-              selectedOrders.remove(shipment);
-            else
-              selectedOrders.add(shipment);
-          });
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10)),
-                    child: Text(shipment.orderId,
-                        style: const TextStyle(
-                            color: primary, fontWeight: FontWeight.bold)),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: shipment.paymentMethod == 'تحصيل'
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          shipment.paymentMethod,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: shipment.paymentMethod == 'تحصيل'
-                                ? Colors.green
-                                : Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Checkbox(
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)
+          ]),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SingleChildScrollView(
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.grey.shade50),
+              dataRowMinHeight: 60,
+              dataRowMaxHeight: 60,
+              columns: const [
+                DataColumn(label: Text('تحديد')),
+                DataColumn(
+                    label: Text('باركود الطرد',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('السعر',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('COD',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('الزبون',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('الهاتف',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('تخصيص',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('تاريخ الحجز',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
+                    label: Text('تاريخ استلام الرواجع',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+              rows: filteredShipments.map((shipment) {
+                final isSelected = selectedOrders.contains(shipment);
+                return DataRow(
+                    selected: isSelected,
+                    onSelectChanged: (val) {
+                      setState(() {
+                        if (val == true)
+                          selectedOrders.add(shipment);
+                        else
+                          selectedOrders.remove(shipment);
+                      });
+                    },
+                    cells: [
+                      DataCell(Checkbox(
                         value: isSelected,
                         onChanged: (val) {
                           setState(() {
@@ -468,183 +498,35 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                           });
                         },
                         activeColor: primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoRow(
-                            Icons.person, 'المستلم', shipment.recipientName),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(
-                            Icons.phone, 'الهاتف', shipment.phoneNumber),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(Icons.location_on, 'العنوان',
-                            '${shipment.city} - ${shipment.addressDescription}'),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoRow(Icons.store, 'المتجر',
-                            shipment.username ?? 'غير معروف'),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(Icons.payments, 'تكلفة المرتجع',
-                            '${shipment.deliveryCost} د.أ',
-                            textColor: Colors.red),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(Icons.money_off, 'COD المرتجع',
-                            '${shipment.codAmount} د.أ'),
-                        const SizedBox(height: 8),
-                        _buildInfoRow(
-                            Icons.calendar_today,
-                            'تاريخ الإرجاع',
-                            shipment.returnOrderDate != null
-                                ? intl.DateFormat('yyyy-MM-dd')
-                                    .format(shipment.returnOrderDate!)
-                                : 'غير محدد'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (shipment.notes.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.note, size: 16, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: Text(shipment.notes,
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.orange.shade800))),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value,
-      {Color? textColor}) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                  color: Colors.black, fontSize: 13, fontFamily: 'Almarai'),
-              children: [
-                TextSpan(
-                    text: '$label: ',
-                    style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                TextSpan(
-                    text: value,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, color: textColor)),
-              ],
+                      )),
+                      DataCell(Text(shipment.orderId,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, color: primary))),
+                      DataCell(Text('${shipment.deliveryCost} د.أ')),
+                      DataCell(Text('${shipment.codAmount} د.أ')),
+                      DataCell(Text(shipment.recipientName)),
+                      DataCell(Text(shipment.phoneNumber)),
+                      DataCell(IconButton(
+                        icon: const Icon(Icons.edit,
+                            size: 18, color: Colors.blueGrey),
+                        onPressed: () {
+                          setState(() {
+                            selectedOrders = {shipment};
+                          });
+                          handleAssignToDriver();
+                        },
+                      )),
+                      DataCell(Text(intl.DateFormat('yyyy-MM-dd')
+                          .format(shipment.createdAt))),
+                      DataCell(Text(shipment.returnOrderDate != null
+                          ? intl.DateFormat('yyyy-MM-dd')
+                              .format(shipment.returnOrderDate!)
+                          : 'غير محدد')),
+                    ]);
+              }).toList(),
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildSelectionActionFrame() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 15,
-              offset: const Offset(0, -5))
-        ],
-        borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30), topRight: Radius.circular(30)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: primary,
-                radius: 20,
-                child: Text('${selectedOrders.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 14)),
-              ),
-              const SizedBox(width: 12),
-              const Text('طلبات محددة',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.print, color: primary),
-                onPressed: () => PrintHandler()
-                    .printShipmentsDocument(selectedOrders.toList()),
-                tooltip: 'طباعة المحدد',
-              ),
-              IconButton(
-                icon: const Icon(Icons.file_download, color: Colors.green),
-                onPressed: () async {
-                  final excel = await ExcelImportHandler()
-                      .exportShipmentsToExcel(selectedOrders.toList());
-                  await FileHandler.downloadFile(
-                      excel, 'returned_orders_selection.xlsx');
-                },
-                tooltip: 'تصدير المحدد',
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: () => setState(() => selectedOrders.clear()),
-                tooltip: 'إلغاء التحديد',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.local_shipping, color: Colors.white),
-              label: const Text('تعيين للسائق',
-                  style: TextStyle(color: Colors.white)),
-              onPressed: isProcessing ? null : handleAssignToDriver,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -679,10 +561,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
   void _selectCity(AppProvider provider) async {
     final cities = provider.cities;
     final city = await showDialog<String>(
-      context: context,
-      builder: (context) =>
-          _SimpleSelectionDialog(title: 'اختر المدينة', items: cities),
-    );
+        context: context,
+        builder: (context) =>
+            _SimpleSelectionDialog(title: 'اختر المدينة', items: cities));
     if (city != null) {
       setState(() {
         _selectedCity = city;
@@ -694,13 +575,11 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
   void _selectMerchant(AppProvider provider) async {
     final merchants = provider.customers;
     final merchant = await showDialog<Customer>(
-      context: context,
-      builder: (context) => _SimpleSelectionDialog<Customer>(
-        title: 'اختر التاجر',
-        items: merchants,
-        labelBuilder: (c) => c.username,
-      ),
-    );
+        context: context,
+        builder: (context) => _SimpleSelectionDialog<Customer>(
+            title: 'اختر التاجر',
+            items: merchants,
+            labelBuilder: (c) => c.username));
     if (merchant != null) {
       setState(() {
         _selectedMerchantId = merchant.userid;
@@ -732,9 +611,7 @@ class _SimpleSelectionDialog<T> extends StatelessWidget {
             final label =
                 labelBuilder != null ? labelBuilder!(item) : item.toString();
             return ListTile(
-              title: Text(label),
-              onTap: () => Navigator.pop(context, item),
-            );
+                title: Text(label), onTap: () => Navigator.pop(context, item));
           },
         ),
       ),
@@ -802,41 +679,14 @@ class _DriverSelectionDialogState extends State<_DriverSelectionDialog> {
                       itemCount: filteredDrivers.length,
                       itemBuilder: (context, index) {
                         final driver = filteredDrivers[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 4),
-                            leading: CircleAvatar(
-                              radius: 24,
-                              backgroundColor: primary.withOpacity(0.1),
-                              backgroundImage: (driver.profileImage != null &&
-                                      driver.profileImage!.isNotEmpty)
-                                  ? NetworkImage(driver.profileImage!)
-                                  : null,
-                              child: (driver.profileImage == null ||
-                                      driver.profileImage!.isEmpty)
-                                  ? const Icon(Icons.person, color: primary)
-                                  : null,
-                            ),
-                            title: Text(driver.username ?? 'غير معروف',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            subtitle: Row(
-                              children: [
-                                const Icon(Icons.phone,
-                                    size: 12, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Text(driver.phone ?? '',
-                                    style: const TextStyle(fontSize: 12)),
-                              ],
-                            ),
-                            trailing:
-                                const Icon(Icons.chevron_left, color: primary),
-                            onTap: () => Navigator.pop(context, driver),
-                          ),
+                        return ListTile(
+                          leading: CircleAvatar(
+                              backgroundColor: secprimary,
+                              child: const Icon(Icons.person,
+                                  color: Colors.white)),
+                          title: Text(driver.username ?? 'بدون اسم'),
+                          subtitle: Text(driver.phone ?? ''),
+                          onTap: () => Navigator.pop(context, driver),
                         );
                       },
                     ),

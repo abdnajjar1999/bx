@@ -342,6 +342,13 @@ const List<String> drawerTitles = [
   'اداره الموظفين', // Index 29
   "ضبط استيراد الاكسل", // Index 30
   'أنواع الطرود', // Index 31
+  'شاشة استلام الطرود', // Index 32
+  'الرواجع', // Index 33
+  'رواجع التبديل', // Index 34
+  'رواجع التوصيل الجزئي', // Index 35
+  'طرود الاحضار', // Index 36
+  'مع السائق', // Index 37
+  'مسلمة إلى المرسل', // Index 38
 ];
 
 List<String>? userPermissions;

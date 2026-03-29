@@ -344,9 +344,16 @@ class _dashboardState extends State<dashboard> {
       case 15:
         return AreaManagement();
       case 16:
-        return AllReturnedOrders();
+      case 37:
+      case 38:
+        return AllReturnedOrders(sectionIndex: index);
       case 17:
-        return ReturnedOrdersScreen();
+      case 32:
+      case 33:
+      case 34:
+      case 35:
+      case 36:
+        return ReturnedOrdersScreen(sectionIndex: index);
       case 18:
         return BankAccountsScreen();
       case 19:
