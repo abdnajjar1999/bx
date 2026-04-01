@@ -144,7 +144,7 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
               .map(
                   (doc) => Shipment.fromMap(doc.data() as Map<String, dynamic>))
               .toList();
-          returnedShipments.removeWhere((e) => e.receivedMoneyFromCustomer);
+          // returnedShipments.removeWhere((e) => e.receivedMoneyFromCustomer);
           _applyFilters();
           isLoading = false;
         });

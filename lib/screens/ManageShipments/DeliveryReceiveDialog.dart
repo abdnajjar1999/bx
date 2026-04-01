@@ -53,13 +53,14 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
         'driverFetching',
         'driverShipping',
         'driverReturning'
-      ]).where('status', isEqualTo: 'تم إرجاعها');
+      ]).where('status', whereIn: [
+        'تم إرجاعها',
+        'تم توصيلها بشكل جزئي',
+        'تم توصيلها',
+      ]);
     } else {
       query = query.where('orderPossession',
           whereIn: ['driverFetching', 'driverShipping', 'driverReturning']);
-
-      // query = query.where('status',
-      //     whereNotIn: ["تم توصيلها", "في الفرع", "بانتظار موافقة السائق"]);
     }
 
     query.get().then((value) {
@@ -75,6 +76,15 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
                   "تم إرجاعها" // Exclude returned orders as they have their own index
                 ].contains(order.status))
             .toList();
+      } else if (widget.index == 1) {
+        // For 'تم توصيلها' orders, only keep those with paymentMethod 'تبديل' or 'إحضار'
+        orders = orders.where((order) {
+          if (order.status == 'تم توصيلها') {
+            return order.paymentMethod == 'تبديل' ||
+                order.paymentMethod == 'إحضار';
+          }
+          return true; // Keep 'تم إرجاعها' and 'تم توصيلها بشكل جزئي' as-is
+        }).toList();
       }
 
       setState(() {

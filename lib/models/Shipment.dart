@@ -522,11 +522,11 @@ class Shipment {
   double get payableToCustomer {
     double payable = 0.0;
 
-    if (status == "تم إرجاعها") {
-      if (getMoneyFromUserPalance == true && !isCompanyDeliveryFeePaid) {
-        payable = -deliveryCost;
+    if (status == 'تم إرجاعها') {
+      if (getMoneyFromUserPalance) {
+        return -deliveryCost;
       }
-      return payable;
+      return 0;
     }
 
     if (paymentMethod == 'مدفوعة مسبقا') {

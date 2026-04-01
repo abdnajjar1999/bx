@@ -682,16 +682,25 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
                               selectedOrderIds.contains(shipment.orderId))
                           .toList();
 
+                      DriverDeliveryData driverDeliveryData =
+                          DriverDeliveryData.fromShipments(
+                        selectedDeliveryData!.driverName,
+                        Shipment.getShipmentsWithDriverPrice(
+                            selectedShipments, selectedDriverShippingRoute),
+                      );
+                      if (driverDeliveryData.totalCollections < 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'لا يمكن استلام طرود بمبلغ سالب لعدم وجود عهده')),
+                        );
+                        return;
+                      }
                       var result = await showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return FinancialSettlementsDialog(
-                            driverData: DriverDeliveryData.fromShipments(
-                              selectedDeliveryData!.driverName,
-                              Shipment.getShipmentsWithDriverPrice(
-                                  selectedShipments,
-                                  selectedDriverShippingRoute),
-                            ),
+                            driverData: driverDeliveryData,
                           );
                         },
                       );

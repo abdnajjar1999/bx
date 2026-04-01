@@ -503,6 +503,7 @@ void showChangeStatusBottomSheet(
                   if (status == "تم إرجاعها" || status == "في المركبة")
                     buildDropdownField(
                       items: OrderPossession.values
+                          .where((e) => e.name.contains("driver"))
                           .map((e) => DropdownMenuItem<OrderPossession>(
                                 value: e,
                                 child: Text(e.nameAr),
@@ -558,8 +559,7 @@ void showChangeStatusBottomSheet(
                                     status == "في المركبة" ||
                                     status == "تم توصيلها" ||
                                     status == "تم توصيلها بشكل جزئي" ||
-                                    status == "تم إرجاعها"
-                                    ) &&
+                                    status == "تم إرجاعها") &&
                                 driver == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
