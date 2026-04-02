@@ -24,7 +24,7 @@ const Color accentColor = Color(0xFF6366F1);
 
 String $KcompanyLogo = 'logo.png';
 
-String email = 'bx@1.com';
+String email = 'bx1@1.com.com';
 
 String password = '123123';
 

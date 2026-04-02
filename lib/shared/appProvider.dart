@@ -74,9 +74,10 @@ class AppProvider extends ChangeNotifier {
     firebaseHelper.packageTypesStream().listen((snapshot) {
       if (snapshot.exists && snapshot.data() != null) {
         if (snapshot.data()!.containsKey('types')) {
-          packageTypes = List<Map<String, dynamic>>.from(snapshot.data()!['types'])
-              .map((e) => PackageType.fromMap(e))
-              .toList();
+          packageTypes =
+              List<Map<String, dynamic>>.from(snapshot.data()!['types'])
+                  .map((e) => PackageType.fromMap(e))
+                  .toList();
           notifyListeners();
         }
       }
@@ -163,7 +164,8 @@ class AppProvider extends ChangeNotifier {
       bool? returnedAfterDelivery,
       Shelf? shelf,
       OrderPossession? orderPossession,
-      DateTime? postponementDate}) {
+      DateTime? postponementDate,
+      double returnedOrderCollection = 0.0}) {
     if (!Utilities.checkPermission("تغير الحاله")) {
       return;
     }
@@ -173,7 +175,8 @@ class AppProvider extends ChangeNotifier {
         returnedAfterDelivery: returnedAfterDelivery,
         shelf: shelf,
         orderPossession: orderPossession,
-        postponementDate: postponementDate);
+        postponementDate: postponementDate,
+        returnedOrderCollection: returnedOrderCollection);
   }
 
   removeDriver(String orderId) {
@@ -582,6 +585,7 @@ class AppProvider extends ChangeNotifier {
     listenToShelves(); // Add this line
     listenToSettings();
     listenToPackageTypes();
+    listenToExcelConfigs();
     // listenToAiUsages();
   }
 
@@ -747,7 +751,8 @@ class AppProvider extends ChangeNotifier {
     firebaseHelper.deleteOrders(selectedOrderIds);
   }
 
-  double calculateDeliveryCostForCity(String cityName, String userId, {String packageTypeName = 'العادية'}) {
+  double calculateDeliveryCostForCity(String cityName, String userId,
+      {String packageTypeName = 'العادية'}) {
     if (cityName.isEmpty || userId.isEmpty) return 0;
 
     String normalizedInput = Utilities.normalizeArabic(cityName);
@@ -805,7 +810,8 @@ class AppProvider extends ChangeNotifier {
           String routeTo = Utilities.normalizeArabic(route.to);
           String routeFrom = Utilities.normalizeArabic(route.from);
 
-          bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+          bool typeMatch =
+              (route.packageTypeName ?? 'العادية') == packageTypeName;
           if (!typeMatch) return false;
 
           bool toMatch = routeTo == cleanCityName ||
@@ -835,7 +841,8 @@ class AppProvider extends ChangeNotifier {
               String routeTo = Utilities.normalizeArabic(route.to);
               String routeFrom = Utilities.normalizeArabic(route.from);
 
-              bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+              bool typeMatch =
+                  (route.packageTypeName ?? 'العادية') == packageTypeName;
               if (!typeMatch) continue;
 
               int scoreTo = ratio(routeTo, cleanCityName);
@@ -880,7 +887,8 @@ class AppProvider extends ChangeNotifier {
             (route) {
               String rtTo = Utilities.normalizeArabic(route.to);
               String rtFrom = Utilities.normalizeArabic(route.from);
-              bool typeMatch = (route.packageTypeName ?? 'العادية') == packageTypeName;
+              bool typeMatch =
+                  (route.packageTypeName ?? 'العادية') == packageTypeName;
               if (!typeMatch) return false;
               return rtTo == cleanCityName ||
                   rtFrom == cleanCityName ||

@@ -186,12 +186,12 @@ class ExcelImportHandler {
               ),
               deliveryCost: deliveryCost,
               collectionMethod:
-                  _getValueByField(row, colMap, 'collectionMethod') ??
-                      'كاش',
+                  _getValueByField(row, colMap, 'collectionMethod') ?? 'كاش',
               recipientName:
                   _getValueByField(row, colMap, 'recipientName') ?? 'مجهول',
               phoneNumber: _getValueByField(row, colMap, 'phoneNumber') ?? '',
-              secondaryPhoneNumber: _getValueByField(row, colMap, 'extraPhone') ?? '',
+              secondaryPhoneNumber:
+                  _getValueByField(row, colMap, 'extraPhone') ?? '',
               city: city,
               addressDescription: address,
               paymentMethod:
@@ -327,33 +327,38 @@ class ExcelImportHandler {
     return value.trim();
   }
 
-  Future<Uint8List> exportShipmentsToExcel(List<Shipment> shipments) async {
+  Future<Uint8List> exportShipmentsToExcel(List<Shipment> shipments, {List<Map<String, dynamic>>? columns}) async {
     var excel = Excel.createExcel();
     var sheet = excel['Sheet1'];
 
-    // Add headers with Arabic text
-    List<String> headers = [
-      'رقم الطلب',
-      'العميل',
-      'اسم المستلم',
-      'رقم الهاتف',
-      'المدينة',
-      'العنوان',
-      'المحتويات',
-      'الحالة',
-      'طريقة الدفع',
-      'قيمة الدفع عند الاستلام',
-      'تكلفة التوصيل',
-      'الوزن',
-      'عدد الطرود',
-      'ملاحظات',
-      'نوع الخدمة',
-      'تاريخ الإنشاء',
-      'تاريخ التحديث',
-      'تاريخ التسليم المتوقع',
-      'تاريخ التسليم',
-      'اسم السائق',
+    List<Map<String, dynamic>> effectiveColumns = columns ?? [
+      {'id': 'orderId', 'label': 'رقم الطلب', 'visible': true},
+      {'id': 'trackingNumber', 'label': 'الإرسالية', 'visible': true},
+      {'id': 'username', 'label': 'العميل', 'visible': true},
+      {'id': 'recipientName', 'label': 'اسم المستلم', 'visible': true},
+      {'id': 'phoneNumber', 'label': 'رقم الهاتف', 'visible': true},
+      {'id': 'city', 'label': 'المدينة', 'visible': true},
+      {'id': 'addressDescription', 'label': 'العنوان', 'visible': true},
+      {'id': 'contents', 'label': 'المحتويات', 'visible': true},
+      {'id': 'status', 'label': 'الحالة', 'visible': true},
+      {'id': 'paymentMethod', 'label': 'طريقة الدفع', 'visible': true},
+      {'id': 'codAmount', 'label': 'قيمة الدفع عند الاستلام', 'visible': true},
+      {'id': 'deliveryCost', 'label': 'تكلفة التوصيل', 'visible': true},
+      {'id': 'weight', 'label': 'الوزن', 'visible': true},
+      {'id': 'parcelCount', 'label': 'عدد الطرود', 'visible': true},
+      {'id': 'notes', 'label': 'ملاحظات', 'visible': true},
+      {'id': 'serviceType', 'label': 'نوع الخدمة', 'visible': true},
+      {'id': 'createdAt', 'label': 'تاريخ الإنشاء', 'visible': true},
+      {'id': 'lastUpdated', 'label': 'تاريخ التحديث', 'visible': true},
+      {'id': 'expectedDeliveryDate', 'label': 'تاريخ التسليم المتوقع', 'visible': true},
+      {'id': 'deliveryDate', 'label': 'تاريخ التسليم', 'visible': true},
+      {'id': 'driverName', 'label': 'اسم السائق', 'visible': true},
     ];
+
+    List<Map<String, dynamic>> visibleColumns =
+        effectiveColumns.where((c) => c['visible'] == true).toList();
+
+    List<String> headers = visibleColumns.map((c) => c['label'] as String).toList();
 
     // Add headers
     for (var i = 0; i < headers.length; i++) {
@@ -370,32 +375,39 @@ class ExcelImportHandler {
       var shipment = shipments[i];
       var rowIndex = i + 1;
 
-      var row = [
-        TextCellValue(shipment.orderId),
-        TextCellValue(shipment.username ?? ''),
-        TextCellValue(shipment.recipientName),
-        TextCellValue(shipment.phoneNumber),
-        TextCellValue(shipment.city),
-        TextCellValue(shipment.addressDescription),
-        TextCellValue(shipment.contents),
-        TextCellValue(shipment.status),
-        TextCellValue(shipment.paymentMethod),
-        DoubleCellValue(shipment.codAmount),
-        DoubleCellValue(shipment.deliveryCost),
-        DoubleCellValue(shipment.weight),
-        IntCellValue(shipment.parcelCount),
-        TextCellValue(shipment.notes),
-        TextCellValue(shipment.serviceType),
-        TextCellValue(DateFormat('yyyy/MM/dd').format(shipment.createdAt)),
-        TextCellValue(DateFormat('yyyy/MM/dd').format(shipment.lastUpdated)),
-        TextCellValue(shipment.expectedDeliveryDate != null
-            ? DateFormat('yyyy/MM/dd').format(shipment.expectedDeliveryDate!)
-            : ''),
-        TextCellValue(shipment.deliveryDate != null
-            ? DateFormat('yyyy/MM/dd').format(shipment.deliveryDate!)
-            : ''),
-        TextCellValue(shipment.driverName ?? ''),
-      ];
+      List<CellValue> row = [];
+      for (var col in visibleColumns) {
+        String id = col['id'] ?? '';
+        if (id == 'orderId') row.add(TextCellValue(shipment.orderId));
+        else if (id == 'trackingNumber') row.add(TextCellValue(shipment.trackingNumber));
+        else if (id == 'username') row.add(TextCellValue(shipment.username ?? ''));
+        else if (id == 'recipientName') row.add(TextCellValue(shipment.recipientName));
+        else if (id == 'phoneNumber') row.add(TextCellValue(shipment.phoneNumber));
+        else if (id == 'city') row.add(TextCellValue(shipment.city));
+        else if (id == 'addressDescription') row.add(TextCellValue(shipment.addressDescription));
+        else if (id == 'contents') row.add(TextCellValue(shipment.contents));
+        else if (id == 'status') row.add(TextCellValue(shipment.status));
+        else if (id == 'paymentMethod') row.add(TextCellValue(shipment.paymentMethod));
+        else if (id == 'codAmount') row.add(DoubleCellValue(shipment.codAmount));
+        else if (id == 'deliveryCost') row.add(DoubleCellValue(shipment.deliveryCost));
+        else if (id == 'weight') row.add(DoubleCellValue(shipment.weight));
+        else if (id == 'parcelCount') row.add(IntCellValue(shipment.parcelCount));
+        else if (id == 'notes') row.add(TextCellValue(shipment.notes));
+        else if (id == 'serviceType') row.add(TextCellValue(shipment.serviceType));
+        else if (id == 'createdAt') row.add(TextCellValue(DateFormat('yyyy/MM/dd').format(shipment.createdAt)));
+        else if (id == 'lastUpdated') row.add(TextCellValue(DateFormat('yyyy/MM/dd').format(shipment.lastUpdated)));
+        else if (id == 'expectedDeliveryDate') {
+          row.add(TextCellValue(shipment.expectedDeliveryDate != null
+              ? DateFormat('yyyy/MM/dd').format(shipment.expectedDeliveryDate!)
+              : ''));
+        } else if (id == 'deliveryDate') {
+          row.add(TextCellValue(shipment.deliveryDate != null
+              ? DateFormat('yyyy/MM/dd').format(shipment.deliveryDate!)
+              : ''));
+        }
+        else if (id == 'driverName') row.add(TextCellValue(shipment.driverName ?? ''));
+        else row.add(TextCellValue(''));
+      }
 
       for (var j = 0; j < row.length; j++) {
         sheet.cell(
@@ -674,20 +686,19 @@ class ExcelImportHandler {
 
     if (validTrackingNumbers.isEmpty) return existing;
 
+    try {
+      var snapshot = await _firestore
+          .collection('orders')
+          .where('trackingNumber', whereIn: validTrackingNumbers)
+          .get();
 
-      try {
-        var snapshot = await _firestore
-            .collection('orders')
-            .where('trackingNumber', whereIn: validTrackingNumbers)
-            .get();
-
-        for (var doc in snapshot.docs) {
-          existing.add(doc['trackingNumber'] as String);
-        }
-      } catch (e) {
-        print("Error checking duplicates: $e");
+      for (var doc in snapshot.docs) {
+        existing.add(doc['trackingNumber'] as String);
       }
-   
+    } catch (e) {
+      print("Error checking duplicates: $e");
+    }
+
     return existing;
   }
 }

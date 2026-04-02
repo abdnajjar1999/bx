@@ -186,7 +186,9 @@ class Shipment {
       isDeliveryFeeOnRecipient; // المستلم سيدفع سعر التوصيل (true by default usually)
   final bool
       isCompanyDeliveryFeePaid; // واصل الشركة (true if paid to company, false otherwise)
-  final bool isPayToRecipient; // الدفع للمستلم (used in Exchange/Pick-up)
+  final bool isPayToRecipient; // الدفع للمستلم
+  final double
+      returnedOrderCollection; // اجور الطلب المرتجع (تحصيل السائق عند الإرجاع)
 
   Shipment({
     this.customerlocation,
@@ -239,6 +241,7 @@ class Shipment {
     this.isDeliveryFeeOnRecipient = true,
     this.isCompanyDeliveryFeePaid = false,
     this.isPayToRecipient = false,
+    this.returnedOrderCollection = 0.0,
   });
 
   factory Shipment.fromMap(Map<String, dynamic> map) {
@@ -323,6 +326,8 @@ class Shipment {
       isDeliveryFeeOnRecipient: map['isDeliveryFeeOnRecipient'] ?? true,
       isCompanyDeliveryFeePaid: map['isCompanyDeliveryFeePaid'] ?? false,
       isPayToRecipient: map['isPayToRecipient'] ?? false,
+      returnedOrderCollection:
+          (map['returnedOrderCollection'] ?? 0.0).toDouble(),
     );
   }
 
@@ -378,6 +383,7 @@ class Shipment {
       'isDeliveryFeeOnRecipient': isDeliveryFeeOnRecipient,
       'isCompanyDeliveryFeePaid': isCompanyDeliveryFeePaid,
       'isPayToRecipient': isPayToRecipient,
+      'returnedOrderCollection': returnedOrderCollection,
     };
   }
 
@@ -491,6 +497,8 @@ class Shipment {
       isCompanyDeliveryFeePaid:
           isCompanyDeliveryFeePaid ?? this.isCompanyDeliveryFeePaid,
       isPayToRecipient: isPayToRecipient ?? this.isPayToRecipient,
+      returnedOrderCollection:
+          returnedOrderCollection ?? this.returnedOrderCollection,
     );
   }
 
@@ -498,7 +506,7 @@ class Shipment {
     double collection = 0.0;
 
     if (status == 'تم إرجاعها') {
-      return 0.0;
+      return returnedOrderCollection;
     }
 
     if (paymentMethod == 'مدفوعة مسبقا') {
@@ -524,7 +532,7 @@ class Shipment {
 
     if (status == 'تم إرجاعها') {
       if (getMoneyFromUserPalance) {
-        return -deliveryCost;
+        return -(deliveryCost - returnedOrderCollection);
       }
       return 0;
     }

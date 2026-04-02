@@ -424,7 +424,8 @@ class FirebaseHelper {
       bool? returnedAfterDelivery,
       Shelf? shelf,
       OrderPossession? orderPossession,
-      DateTime? postponementDate}) async {
+      DateTime? postponementDate,
+      double returnedOrderCollection = 0.0}) async {
     if (status == "تم توصيلها" || status == "تم توصيلها بشكل جزئي") {
       var shipmentData =
           await _fireStore.collection('orders').doc(orderId).get();
@@ -446,6 +447,7 @@ class FirebaseHelper {
         'receivedMoneyFromCustomer': receivedMoneyFromCustomer,
         'getMoneyFromUserPalance': getMoneyFromUserPalance,
         'returnedAfterDelivery': returnedAfterDelivery,
+        'returnedOrderCollection': returnedOrderCollection,
       },
       if (shelf != null) ...{
         'shelfId': shelf.id,
@@ -537,10 +539,12 @@ class FirebaseHelper {
     return _fireStore.collection('configs').doc('packageTypes').snapshots();
   }
 
-  Future<void> updatePackageTypes(List<Map<String, dynamic>> packageTypes) async {
-    await _fireStore.collection('configs').doc('packageTypes').set({
-      'types': packageTypes
-    }, SetOptions(merge: true));
+  Future<void> updatePackageTypes(
+      List<Map<String, dynamic>> packageTypes) async {
+    await _fireStore
+        .collection('configs')
+        .doc('packageTypes')
+        .set({'types': packageTypes}, SetOptions(merge: true));
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> priceCalculatorStream(

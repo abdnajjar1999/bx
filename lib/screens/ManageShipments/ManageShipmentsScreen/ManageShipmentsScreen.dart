@@ -580,6 +580,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
     });
 
     _loadColumnSettings();
+    _loadExcelColumnSettings();
     _fetchOrders();
     Future.delayed(Duration.zero, () {
       // Add null safety checks for scroll controllers
@@ -771,6 +772,125 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
         });
       }
     }
+  }
+
+  List<Map<String, dynamic>> excelColumnConfigs = [
+    {'id': 'orderId', 'label': 'رقم الطلب', 'visible': true},
+    {'id': 'trackingNumber', 'label': 'الإرسالية', 'visible': true},
+    {'id': 'username', 'label': 'العميل', 'visible': true},
+    {'id': 'recipientName', 'label': 'اسم المستلم', 'visible': true},
+    {'id': 'phoneNumber', 'label': 'رقم الهاتف', 'visible': true},
+    {'id': 'city', 'label': 'المدينة', 'visible': true},
+    {'id': 'addressDescription', 'label': 'العنوان', 'visible': true},
+    {'id': 'contents', 'label': 'المحتويات', 'visible': true},
+    {'id': 'status', 'label': 'الحالة', 'visible': true},
+    {'id': 'paymentMethod', 'label': 'طريقة الدفع', 'visible': true},
+    {'id': 'codAmount', 'label': 'قيمة الدفع عند الاستلام', 'visible': true},
+    {'id': 'deliveryCost', 'label': 'تكلفة التوصيل', 'visible': true},
+    {'id': 'weight', 'label': 'الوزن', 'visible': true},
+    {'id': 'parcelCount', 'label': 'عدد الطرود', 'visible': true},
+    {'id': 'notes', 'label': 'ملاحظات', 'visible': true},
+    {'id': 'serviceType', 'label': 'نوع الخدمة', 'visible': true},
+    {'id': 'createdAt', 'label': 'تاريخ الإنشاء', 'visible': true},
+    {'id': 'lastUpdated', 'label': 'تاريخ التحديث', 'visible': true},
+    {
+      'id': 'expectedDeliveryDate',
+      'label': 'تاريخ التسليم المتوقع',
+      'visible': true
+    },
+    {'id': 'deliveryDate', 'label': 'تاريخ التسليم', 'visible': true},
+    {'id': 'driverName', 'label': 'اسم السائق', 'visible': true},
+  ];
+
+  Future<void> _loadExcelColumnSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? savedConfigs = prefs.getString('excel_column_configs');
+    if (savedConfigs != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(savedConfigs);
+        setState(() {
+          List<Map<String, dynamic>> loadedConfigs =
+              decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+
+          List<Map<String, dynamic>> updatedConfigs = [];
+          for (var loaded in loadedConfigs) {
+            final defaultIdx =
+                excelColumnConfigs.indexWhere((c) => c['id'] == loaded['id']);
+            if (defaultIdx != -1) {
+              updatedConfigs.add({
+                ...excelColumnConfigs[defaultIdx],
+                'visible': loaded['visible'] ?? true,
+              });
+            }
+          }
+
+          for (var defaultCol in excelColumnConfigs) {
+            if (!updatedConfigs.any((c) => c['id'] == defaultCol['id'])) {
+              updatedConfigs.add(defaultCol);
+            }
+          }
+
+          excelColumnConfigs = updatedConfigs;
+        });
+      } catch (e) {
+        debugPrint('Error loading excel column settings: $e');
+      }
+    }
+  }
+
+  Future<void> _saveExcelColumnSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded = jsonEncode(excelColumnConfigs);
+    await prefs.setString('excel_column_configs', encoded);
+  }
+
+  void _showExcelColumnSettings() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('إعدادات أعمدة الإكسل', textAlign: TextAlign.right),
+          content: SizedBox(
+            width: 400,
+            height: 500,
+            child: ReorderableListView(
+              onReorder: (oldIndex, newIndex) {
+                setDialogState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final item = excelColumnConfigs.removeAt(oldIndex);
+                  excelColumnConfigs.insert(newIndex, item);
+                });
+                _saveExcelColumnSettings();
+                setState(() {});
+              },
+              children: excelColumnConfigs.map((config) {
+                return ListTile(
+                  key: ValueKey(config['id']),
+                  leading: const Icon(Icons.drag_handle),
+                  title: Text(config['label'], textAlign: TextAlign.right),
+                  trailing: Checkbox(
+                    value: config['visible'],
+                    onChanged: (val) {
+                      setDialogState(() {
+                        config['visible'] = val;
+                      });
+                      _saveExcelColumnSettings();
+                      setState(() {});
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   OverlayEntry? _overlayEntry;
@@ -1431,7 +1551,8 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                                     final excelBytes =
                                                         await excelHandler
                                                             .exportShipmentsToExcel(
-                                                                selectedOrders);
+                                                                selectedOrders,
+                                                                columns: excelColumnConfigs);
 
                                                     await FileHandler
                                                         .downloadFile(
@@ -1456,6 +1577,9 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                                               'حدث خطأ أثناء التصدير: $e')),
                                                     );
                                                   }
+                                                } else if (value ==
+                                                    'excel_settings') {
+                                                  _showExcelColumnSettings();
                                                 } else if (value ==
                                                     'import_excel') {
                                                   try {

@@ -70,18 +70,18 @@ class UserAccount {
       }
       if (shipment.status == "تم إرجاعها") {
         if (shipment.getMoneyFromUserPalance == true) {
-          servicesFees += shipment.deliveryCost ?? 0.0;
+          servicesFees += shipment.deliveryCost;
         }
       } else {
-        finalTotalAmount += shipment.codAmount ?? 0.0;
-        servicesFees += shipment.deliveryCost ?? 0.0;
+        finalTotalAmount += shipment.codAmount;
+        servicesFees += shipment.deliveryCost;
       }
     }
     double taxFees = servicesFees * 0.15; // Assuming 15% tax on services
 
-    finalTotalAmount= shipments.fold(0, (sum, shipment) => sum + (shipment.payableToCustomer ?? 0));
-    finalTotalAmount+=servicesFees;
-    
+    finalTotalAmount =
+        shipments.fold(0, (sum, shipment) => sum + shipment.payableToCustomer);
+    finalTotalAmount += servicesFees;
 
     return UserAccount(
       id: firstShipment.userId ?? '',

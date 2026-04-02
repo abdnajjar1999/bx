@@ -18,6 +18,9 @@ void showChangeStatusBottomSheet(
     List<String> selectedOrderIds = const []}) {
   var status = shipment?.status;
   TextEditingController noteController = TextEditingController();
+  TextEditingController returnedOrderCollectionController =
+      TextEditingController(
+          text: shipment?.returnedOrderCollection.toString() ?? '0.0');
   Shelf? shelf =
       appProvider.shelves.where((e) => e.id == shipment?.shelfId).firstOrNull;
   Driver? driver = appProvider.drivers
@@ -492,9 +495,25 @@ void showChangeStatusBottomSheet(
                                 onChanged: (bool? value) {
                                   setState(() {
                                     receivedMoneyFromCustomer = value ?? false;
+                                    if (receivedMoneyFromCustomer) {
+                                      returnedOrderCollectionController.text =
+                                          (shipment?.deliveryCost ?? 0.0)
+                                              .toString();
+                                    }
                                   });
                                 },
                               ),
+                              if (!receivedMoneyFromCustomer)
+                                CustomTextField(
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
+                                  labelText: 'اجور الطلب المرتجع المستلمة',
+                                  hintText: "ادخل المبلغ المستلم",
+                                  prefixIcon: Icons.money,
+                                  controller: returnedOrderCollectionController,
+                                  keyboardType: TextInputType.number,
+                                ),
                             ],
                           ),
                       ],
@@ -610,6 +629,10 @@ void showChangeStatusBottomSheet(
                                     ? receivedMoneyFromCustomer
                                     : null,
                                 returnedAfterDelivery: getMoneyFromUserPalance,
+                                returnedOrderCollection: double.tryParse(
+                                        returnedOrderCollectionController
+                                            .text) ??
+                                    0.0,
                                 shelf: shelf,
                                 orderPossession: orderPossession,
                                 postponementDate: status == "مؤجلة لوقت آخر"
@@ -651,6 +674,10 @@ void showChangeStatusBottomSheet(
                                             : null,
                                     returnedAfterDelivery:
                                         getMoneyFromUserPalance,
+                                    returnedOrderCollection: double.tryParse(
+                                            returnedOrderCollectionController
+                                                .text) ??
+                                        0.0,
                                     shelf: shelf,
                                     orderPossession: orderPossession,
                                     postponementDate: status == "مؤجلة لوقت آخر"
