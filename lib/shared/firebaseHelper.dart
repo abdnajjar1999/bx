@@ -737,9 +737,8 @@ class FirebaseHelper {
 
     for (var shipment in driverData.shipments) {
       // Update order document
-      batch.update(_fireStore.collection('orders').doc(shipment.orderId), {
+      Map<String, dynamic> updateData = {
         'cashPossession': 'branch',
-        // "driverId":null,
         'paymentStatus': 'collected',
         'lastUpdated': now,
         'logs': FieldValue.arrayUnion([
@@ -750,7 +749,16 @@ class FirebaseHelper {
             'userName': user!.displayName
           }
         ])
-      });
+      };
+
+      // Only change orderPossession to receiver for fully delivered orders
+      // For partially delivered orders, it should remain 'branch'
+      if (shipment.status == 'تم توصيلها') {
+        updateData['orderPossession'] =
+            OrderPossession.receiver.toString().split('.').last;
+      }
+
+      batch.update(_fireStore.collection('orders').doc(shipment.orderId), updateData);
 
       // Update user document if userId exists
       if (shipment.userId != null) {

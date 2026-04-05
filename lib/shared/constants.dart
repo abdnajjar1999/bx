@@ -388,7 +388,7 @@ OrderPossession orderPossessionFallback(
     case 'تالفة':
       return OrderPossession.branch;
     case 'تم توصيلها بشكل جزئي':
-      return OrderPossession.driverShipping;
+      return orderPossessionValue;
     case 'مؤجلة لوقت آخر':
       return OrderPossession.branch;
     default:

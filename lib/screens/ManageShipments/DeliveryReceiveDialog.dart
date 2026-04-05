@@ -73,11 +73,12 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
                   "تم توصيلها",
                   "في الفرع",
                   "بانتظار موافقة السائق",
-                  "تم إرجاعها" // Exclude returned orders as they have their own index
+                  "تم إرجاعها", // Exclude returned orders as they have their own index
+                  "تم توصيلها بشكل جزئي"
                 ].contains(order.status))
             .toList();
       } else if (widget.index == 1) {
-        // For 'تم توصيلها' orders, only keep those with paymentMethod 'تبديل' or 'إحضار'
+        // For 'تم توصيلها', 'بانتظار التحميل' or 'في المركبة' orders, only keep those with paymentMethod 'تبديل' or 'إحضار'
         orders = orders.where((order) {
           if (order.status == 'تم توصيلها') {
             return order.paymentMethod == 'تبديل' ||
@@ -575,7 +576,11 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
                       return;
                     }
                     setState(() {
-                      selectedShipments.add(order);
+                      if (!selectedShipments
+                          .any((s) => s.orderId == order.orderId)) {
+                        selectedShipments.add(order);
+                      }
+                      selectedOrderIds.add(order.orderId);
                     });
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

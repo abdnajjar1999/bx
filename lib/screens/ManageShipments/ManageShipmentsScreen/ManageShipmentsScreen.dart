@@ -986,9 +986,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                     DropdownFormField(
                       label: 'المدينة',
                       value: selectedRecipientCityOnly,
-                      items: cities
-                          .toSet()
-                          .toList(),
+                      items: cities.toSet().toList(),
                       onChanged: (value) {
                         setState(() {
                           selectedRecipientCityOnly = value;
@@ -1552,7 +1550,8 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                                         await excelHandler
                                                             .exportShipmentsToExcel(
                                                                 selectedOrders,
-                                                                columns: excelColumnConfigs);
+                                                                columns:
+                                                                    excelColumnConfigs);
 
                                                     await FileHandler
                                                         .downloadFile(
@@ -3355,13 +3354,27 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                     color: getStatusColor(order.status),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
-                    order.status,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        order.status,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (['تم إرجاعها', 'في المركبة', 'تم توصيلها بشكل جزئي']
+                          .contains(order.status))
+                        Text(
+                          order.orderPossession.nameAr,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -3716,11 +3729,12 @@ class _ShipmentDataTableSource extends DataTableSource {
               cellWidget = Customtext(title: order.trackingNumber);
               break;
             case 'paymentMethod':
-if(order.isCompanyDeliveryFeePaid){
-  cellWidget = Customtext(title: order.paymentMethod + "\n" "واصل bX" );
-}else{
-  cellWidget = Customtext(title: order.paymentMethod);
-}
+              if (order.isCompanyDeliveryFeePaid) {
+                cellWidget =
+                    Customtext(title: order.paymentMethod + "\n" "واصل bX");
+              } else {
+                cellWidget = Customtext(title: order.paymentMethod);
+              }
               break;
             case 'collectionMethod':
               cellWidget = Customtext(title: order.collectionMethod);
@@ -3850,7 +3864,9 @@ Widget getSubText(String status, Shipment shipment) {
     case 'على الرفوف':
       return Text('الطرد على الرف:' + shipment.shelfName.toString());
     case 'تم إرجاعها':
-      return Text('تم إرجاع الطرد مع: ${shipment.orderPossession.nameAr}');
+    case 'في المركبة':
+    case 'تم توصيلها بشكل جزئي':
+      return Text('الطرد المرتجع: ${shipment.orderPossession.nameAr}');
     default:
       return SizedBox.shrink();
   }

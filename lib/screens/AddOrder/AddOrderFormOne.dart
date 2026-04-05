@@ -110,7 +110,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
       phoneController.text = "0791234567";
       codAmountController.text = "150";
       trackingNumberController.text =
-          "TRK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
+          "${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}";
       contentController.text = "ملابس وأحذية";
       weightController.text = "2.5";
       notesController.text = "الرجاء الاتصال قبل التوصيل بنصف ساعة";

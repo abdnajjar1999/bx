@@ -93,7 +93,8 @@ void showChangeStatusBottomSheet(
                             ))
                         .toList(),
                     onChanged: (value) {
-                      if (["في المركبة", "تم إرجاعها"].contains(value)) {
+                      if (["في المركبة", "تم إرجاعها", "تم توصيلها بشكل جزئي"]
+                          .contains(value)) {
                         orderPossession = OrderPossession.driverShipping;
                       }
                       setState(() {
@@ -519,7 +520,9 @@ void showChangeStatusBottomSheet(
                       ],
                     ),
                   const SizedBox(height: 24),
-                  if (status == "تم إرجاعها" || status == "في المركبة")
+                  if (status == "تم إرجاعها" ||
+                      status == "في المركبة" ||
+                      status == "تم توصيلها بشكل جزئي")
                     buildDropdownField(
                       items: OrderPossession.values
                           .where((e) => e.name.contains("driver"))
