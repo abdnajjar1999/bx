@@ -69,7 +69,22 @@ class header extends StatelessWidget {
               // Action Buttons
               Row(
                 children: [
-                  const NotificationButton(),
+                  NotificationButton(onTap: (notification) {
+                    switch (notification.type) {
+                      case 'order':
+                        if (notification.orderId != null) {
+                          _handleSearch(
+                              context, appProvider, notification.orderId!);
+                        }
+                        break;
+                      case "chat":
+                        if (notification.orderId != null) {
+                          _handleSearch(
+                              context, appProvider, notification.orderId!);
+                        }
+                        break;
+                    }
+                  }),
                   const SizedBox(width: 16),
                   _buildProfileButton(context),
                   const SizedBox(width: 16),

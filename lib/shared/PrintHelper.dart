@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:good_line_delivery/models/customer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as a;
 import 'package:printing/printing.dart';
@@ -10,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../main.dart';
 import '../models/Inventory.dart';
 import '../models/UserAccount.dart';
+import '../models/customer.dart';
 import '../utils/file_handler.dart';
 import 'dart:ui' as ui;
 
@@ -389,198 +389,301 @@ class PrintHandler {
     try {
       _logoImage ??= await _getLogoImage();
       final arabicFont = await PdfGoogleFonts.notoNaskhArabicRegular();
-      final arabicBoldFont = await PdfGoogleFonts.notoNaskhArabicRegular();
+      final arabicBoldFont = await PdfGoogleFonts.notoNaskhArabicBold();
       final doc = pw.Document();
-      int itemsPerPage = 9;
+
+      int itemsPerPage = 15;
       int pages = (deliveryData.shipments.length / itemsPerPage).ceil();
+      if (pages == 0) pages = 1;
 
       for (int i = 0; i < pages; i++) {
         int start = i * itemsPerPage;
         int end = start + itemsPerPage;
-        if (end > deliveryData.shipments.length)
+        if (end > deliveryData.shipments.length) {
           end = deliveryData.shipments.length;
+        }
 
         final pageShipments = deliveryData.shipments.sublist(start, end);
+
         doc.addPage(
           pw.Page(
-            // pageFormat: PdfPageFormat.a4.landscape,
+            pageFormat: PdfPageFormat.a4,
+            margin: const pw.EdgeInsets.all(20),
             build: (pw.Context context) {
               return pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
+                  // Header section
                   if (i == 0) ...[
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Image(_logoImage!, width: 100, height: 50),
-                        pw.Text(
-                          KcompanyName,
-                          style: pw.TextStyle(font: arabicFont, fontSize: 18),
-                          textDirection: pw.TextDirection.rtl,
+                        pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          children: [
+                            pw.Text(
+                              KcompanyName,
+                              style: pw.TextStyle(
+                                  font: arabicBoldFont, fontSize: 18),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                            pw.Text(
+                              'كشف تسوية تحصيلات سائق',
+                              style: pw.TextStyle(
+                                  font: arabicBoldFont, fontSize: 14),
+                              textDirection: pw.TextDirection.rtl,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    pw.Padding(
+                    pw.SizedBox(height: 15),
+                    pw.Container(
                       padding: const pw.EdgeInsets.all(10),
-                      child: pw.Row(
-                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius:
+                            const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      ),
+                      child: pw.Column(
                         children: [
-                          pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          pw.Row(
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text(
-                                'تاريخ الطباعة: ${a.DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                                style: pw.TextStyle(
-                                    font: arabicFont, fontSize: 18),
-                                textDirection: pw.TextDirection.rtl,
-                              ),
+                              _buildSummaryItem('اسم السائق',
+                                  deliveryData.driverName, arabicFont),
+                              _buildSummaryItem(
+                                  'تاريخ الطباعة',
+                                  a.DateFormat('dd/MM/yyyy HH:mm')
+                                      .format(DateTime.now()),
+                                  arabicFont),
+                              _buildSummaryItem('عدد الشحنات',
+                                  '${deliveryData.parcelCount}', arabicFont),
                             ],
                           ),
-                          pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                          pw.Divider(color: PdfColors.grey300),
+                          pw.Row(
+                            mainAxisAlignment:
+                                pw.MainAxisAlignment.spaceBetween,
                             children: [
-                              pw.Text(
-                                'تقرير إستلام التحصيلات',
-                                style: pw.TextStyle(
-                                    font: arabicFont, fontSize: 18),
-                                textDirection: pw.TextDirection.rtl,
-                              ),
-                              pw.Text(
-                                'إسم المحصل: ${deliveryData.driverName}',
-                                style: pw.TextStyle(font: arabicFont),
-                                textDirection: pw.TextDirection.rtl,
-                              ),
-                              pw.Text(
-                                'عدد الشحنات: ${deliveryData.parcelCount}',
-                                style: pw.TextStyle(font: arabicFont),
-                                textDirection: pw.TextDirection.rtl,
-                              ),
-                              pw.Text(
-                                'تاريخ الاستلام: ${a.DateFormat('dd/MM/yyyy HH:mm').format(deliveryData.deliveryDate)}',
-                                style: pw.TextStyle(font: arabicFont),
-                                textDirection: pw.TextDirection.rtl,
-                              ),
+                              _buildSummaryItem(
+                                  'إجمالي COD',
+                                  '${deliveryData.totalCollections.toStringAsFixed(2)}',
+                                  arabicFont,
+                                  isBoldValue: true),
+                              _buildSummaryItem(
+                                  'إجمالي أجور التوصيل',
+                                  '${deliveryData.price.toStringAsFixed(2)}',
+                                  arabicFont),
+                              _buildSummaryItem(
+                                  'نصيب السائق',
+                                  '${deliveryData.driverPrice.toStringAsFixed(2)}',
+                                  arabicFont,
+                                  isBoldValue: true,
+                                  valueColor: PdfColors.blue900),
                             ],
                           ),
                         ],
                       ),
                     ),
+                    pw.SizedBox(height: 15),
                   ],
+
+                  // Shipments Table
                   pw.Table(
-                    border: pw.TableBorder.all(),
+                    border: pw.TableBorder.all(color: PdfColors.grey300),
                     columnWidths: const {
-                      0: pw.FlexColumnWidth(1),
-                      1: pw.FlexColumnWidth(1),
-                      2: pw.FlexColumnWidth(1),
-                      3: pw.FlexColumnWidth(1.5),
-                      4: pw.FlexColumnWidth(2),
-                      5: pw.FlexColumnWidth(1.5),
-                      6: pw.FlexColumnWidth(1.5),
-                      7: pw.FlexColumnWidth(1.5),
-                      8: pw.FlexColumnWidth(1.5),
-                      9: pw.FlexColumnWidth(2),
+                      0: pw.FlexColumnWidth(0.5), // م
+                      1: pw.FlexColumnWidth(1.5), // رقم الطلب
+                      2: pw.FlexColumnWidth(1.5), // المرسل
+                      3: pw.FlexColumnWidth(1.5), // المستلم
+                      4: pw.FlexColumnWidth(1.2), // الحالة
+                      5: pw.FlexColumnWidth(1), // COD
+                      6: pw.FlexColumnWidth(1), // الأجرة
+                      7: pw.FlexColumnWidth(1), // نصيب السائق
                     },
                     children: [
+                      // Table header
                       pw.TableRow(
-                        decoration: pw.BoxDecoration(color: PdfColors.grey),
+                        decoration:
+                            const pw.BoxDecoration(color: PdfColors.grey200),
                         children: [
-                          'السعر',
-                          'نصيب السائق',
+                          'م',
+                          'رقم الطلب',
+                          'المرسل',
+                          'المستلم',
+                          'الحالة',
                           'COD',
-
-                          //'أجرة النقل',
-                          //'رقم الإرسالية',
-                          'العنوان التفصيلي',
-                          'الملاحظات',
-                          "رقم المستلم",
-                          'اسم المستلم',
-
-                          'تاريخ التوصيل',
-                          'اسم المرسل',
-                          'باركود'
+                          'أجرة التوصيل',
+                          'نصيب السائق',
                         ]
                             .map((text) => pw.Container(
                                   alignment: pw.Alignment.center,
                                   padding: const pw.EdgeInsets.all(5),
-                                  child: pw.Text(text,
-                                      style: pw.TextStyle(font: arabicBoldFont),
-                                      textDirection: pw.TextDirection.rtl),
+                                  child: pw.Text(
+                                    text,
+                                    style: pw.TextStyle(
+                                        font: arabicBoldFont, fontSize: 8),
+                                    textDirection: pw.TextDirection.rtl,
+                                  ),
                                 ))
                             .toList(),
                       ),
-                      ...pageShipments.map((shipment) => pw.TableRow(
-                            children: [
-                              shipment.deliveryCost.toString(),
-                              shipment.driverPrice.toString(),
-                              (shipment.status != 'تم إرجاعها'
-                                      ? shipment.codAmount
-                                      : 0)
-                                  .toString(),
+                      // Shipment rows
+                      ...pageShipments.asMap().entries.map((entry) {
+                        final index = start + entry.key + 1;
+                        final shipment = entry.value;
+                        return pw.TableRow(
+                          children: [
+                            _buildPdfCell(index.toString(), arabicFont),
+                            _buildPdfCell(shipment.orderId, arabicFont),
+                            _buildPdfCell(shipment.username ?? '-', arabicFont),
+                            _buildPdfCell(shipment.recipientName, arabicFont),
+                            _buildPdfCell(shipment.status, arabicFont),
+                            _buildPdfCell(
+                                (shipment.status != 'تم إرجاعها'
+                                        ? shipment.codAmount
+                                        : 0)
+                                    .toStringAsFixed(2),
+                                arabicFont),
+                            _buildPdfCell(
+                                shipment.deliveryCost.toStringAsFixed(2),
+                                arabicFont),
+                            _buildPdfCell(
+                                (shipment.driverPrice ?? 0).toStringAsFixed(2),
+                                arabicFont),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
 
-                              // shipment.trackingNumber,
-                              // shipment.orderId,
-                              shipment.addressDescription,
-                              shipment.notes,
-                              shipment.phoneNumber,
-                              shipment.recipientName,
-                              a.DateFormat('dd/MM/yyyy')
-                                  .format(shipment.createdAt),
-                              shipment.username ?? '',
-                              shipment.orderId,
-                            ]
-                                .map((text) => pw.Container(
-                                      alignment: pw.Alignment.center,
-                                      padding: const pw.EdgeInsets.all(5),
-                                      child: pw.Text(text,
-                                          maxLines: 1,
-                                          style: pw.TextStyle(font: arabicFont),
-                                          textDirection: pw.TextDirection.rtl),
-                                    ))
-                                .toList(),
-                          )),
-                      if (i == pages - 1) ...[
+                  // Total Row on Last Page
+                  if (i == pages - 1) ...[
+                    pw.Table(
+                      border: pw.TableBorder.all(color: PdfColors.grey300),
+                      columnWidths: const {
+                        0: pw.FlexColumnWidth(6.2), // Labels
+                        1: pw.FlexColumnWidth(1), // COD Total
+                        2: pw.FlexColumnWidth(1), // Delivery Total
+                        3: pw.FlexColumnWidth(1), // Driver Share Total
+                      },
+                      children: [
                         pw.TableRow(
                           decoration:
-                              pw.BoxDecoration(color: PdfColors.grey200),
+                              const pw.BoxDecoration(color: PdfColors.grey100),
                           children: [
                             pw.Container(
-                              alignment: pw.Alignment.center,
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(deliveryData.price.toString(),
-                                  style: pw.TextStyle(font: arabicFont)),
-                            ),
-                            pw.Container(
-                              alignment: pw.Alignment.center,
-                              padding: const pw.EdgeInsets.all(5),
+                              alignment: pw.Alignment.centerRight,
+                              padding: const pw.EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
                               child: pw.Text(
-                                  deliveryData.driverPrice.toString(),
-                                  style: pw.TextStyle(font: arabicFont)),
+                                'المجموع الكلي',
+                                style: pw.TextStyle(
+                                    font: arabicBoldFont, fontSize: 9),
+                                textDirection: pw.TextDirection.rtl,
+                              ),
                             ),
-                            pw.Container(
-                              alignment: pw.Alignment.center,
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(
-                                  deliveryData.totalCollections.toString(),
-                                  style: pw.TextStyle(font: arabicFont)),
-                            ),
-                            pw.Container(
-                              alignment: pw.Alignment.center,
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text('المجموع',
-                                  style: pw.TextStyle(font: arabicBoldFont),
-                                  textDirection: pw.TextDirection.rtl),
-                            ),
-                            ...List.generate(
-                                6,
-                                (_) => pw.Container(
-                                      padding: const pw.EdgeInsets.all(5),
-                                      child: pw.Text('',
-                                          style:
-                                              pw.TextStyle(font: arabicFont)),
-                                    )),
+                            _buildPdfCell(
+                                deliveryData.totalCollections
+                                    .toStringAsFixed(2),
+                                arabicBoldFont),
+                            _buildPdfCell(deliveryData.price.toStringAsFixed(2),
+                                arabicBoldFont),
+                            _buildPdfCell(
+                                deliveryData.driverPrice.toStringAsFixed(2),
+                                arabicBoldFont),
                           ],
                         ),
-                      ]
+                      ],
+                    ),
+                    pw.SizedBox(height: 30),
+
+                    // Amount to be handed over calculation
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.end,
+                      children: [
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(12),
+                          decoration: pw.BoxDecoration(
+                            border:
+                                pw.Border.all(color: PdfColors.blue, width: 2),
+                            borderRadius: const pw.BorderRadius.all(
+                                pw.Radius.circular(8)),
+                          ),
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.end,
+                            children: [
+                              pw.Text(
+                                'صافي التحصيلات المستلمة من السائق',
+                                style: pw.TextStyle(
+                                    font: arabicBoldFont,
+                                    fontSize: 12,
+                                    color: PdfColors.blue),
+                                textDirection: pw.TextDirection.rtl,
+                              ),
+                              pw.SizedBox(height: 5),
+                              pw.Text(
+                                '${(deliveryData.totalCollections).toStringAsFixed(2)} JD',
+                                style: pw.TextStyle(
+                                    font: arabicBoldFont,
+                                    fontSize: 16,
+                                    color: PdfColors.blue),
+                                textDirection: pw.TextDirection.rtl,
+                              ),
+                              pw.Text(
+                                '(إجمالي COD المستلم من الموردين)',
+                                style: pw.TextStyle(
+                                    font: arabicFont,
+                                    fontSize: 8,
+                                    color: PdfColors.grey700),
+                                textDirection: pw.TextDirection.rtl,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    pw.Spacer(),
+
+                    // Signatures
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Column(
+                          children: [
+                            pw.Text('توقيع المحاسب',
+                                style: pw.TextStyle(font: arabicBoldFont),
+                                textDirection: pw.TextDirection.rtl),
+                            pw.SizedBox(height: 30),
+                            pw.Text('____________________'),
+                          ],
+                        ),
+                        pw.Column(
+                          children: [
+                            pw.Text('توقيع السائق',
+                                style: pw.TextStyle(font: arabicBoldFont),
+                                textDirection: pw.TextDirection.rtl),
+                            pw.SizedBox(height: 30),
+                            pw.Text('____________________'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // Page footer
+                  pw.SizedBox(height: 10),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('صفحة ${i + 1} من $pages',
+                          style: pw.TextStyle(font: arabicFont, fontSize: 8)),
+                      pw.Text('$KcompanyName - Darbak System',
+                          style: pw.TextStyle(font: arabicFont, fontSize: 8)),
                     ],
                   ),
                 ],
@@ -589,7 +692,6 @@ class PrintHandler {
           ),
         );
       }
-      print("done printing");
 
       if (isDownload != true) {
         await Printing.layoutPdf(
@@ -598,20 +700,16 @@ class PrintHandler {
         return null;
       } else {
         Uint8List pdfBytes = await doc.save();
-        String? firebaseUrl;
+        String filename =
+            'driver_settlement_${deliveryData.driverName}_${a.DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
 
-        if (deliveryData.shipments.isNotEmpty) {
-          firebaseUrl = await FileHandler.downloadFile(pdfBytes,
-              'driver_receipt_${deliveryData.driverName}_${a.DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now())}.pdf',
-              phoneNumber:
-                  isMessage == true && deliveryData.shipments.isNotEmpty
-                      ? deliveryData.shipments.first.phoneNumber
-                      : null,
-              shipment: deliveryData.shipments.first);
-        } else {
-          firebaseUrl = await FileHandler.downloadFile(pdfBytes,
-              'driver_receipt_${deliveryData.driverName}_${a.DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now())}.pdf');
-        }
+        String? firebaseUrl = await FileHandler.downloadFile(pdfBytes, filename,
+            phoneNumber: isMessage == true && deliveryData.shipments.isNotEmpty
+                ? deliveryData.shipments.first.phoneNumber
+                : null,
+            shipment: deliveryData.shipments.isNotEmpty
+                ? deliveryData.shipments.first
+                : null);
 
         return firebaseUrl;
       }
@@ -619,6 +717,32 @@ class PrintHandler {
       debugPrint('Error generating driver receipt PDF: $e');
       return null;
     }
+  }
+
+  pw.Widget _buildSummaryItem(String label, String value, pw.Font font,
+      {bool isBoldValue = false, PdfColor? valueColor}) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.end,
+      children: [
+        pw.Text(
+          label,
+          style:
+              pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey700),
+          textDirection: pw.TextDirection.rtl,
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            font: font,
+            fontSize: 11,
+            fontWeight: isBoldValue ? pw.FontWeight.bold : null,
+            color: valueColor ?? PdfColors.black,
+          ),
+          textDirection: pw.TextDirection.rtl,
+        ),
+      ],
+    );
   }
 
   Future<String?> printUserAccountDocument(UserAccount account,
@@ -770,12 +894,7 @@ class PrintHandler {
                                   '${shipment.status != 'تم إرجاعها' ? (shipment.codAmount ?? 0) : 0}',
                                   arabicFont),
                               _buildPdfCell(
-                                  shipment.status == 'تم إرجاعها'
-                                      ? (shipment.getMoneyFromUserPalance
-                                          ? shipment.deliveryCost.toString()
-                                          : "0")
-                                      : '-',
-                                  arabicFont),
+                                  '${shipment.deliveryCost ?? 0}', arabicFont),
                               _buildPdfCell(
                                   '${(shipment.status != 'تم إرجاعها' ? ((shipment.codAmount ?? 0) - (shipment.deliveryCost ?? 0)) : (shipment.deliveryCost ?? 0)).toStringAsFixed(2)}',
                                   arabicFont),

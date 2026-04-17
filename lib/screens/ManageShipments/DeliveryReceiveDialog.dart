@@ -35,72 +35,74 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
   Set<Shipment> selectedShipments = {};
   Set<String> selectedOrderIds = {};
   bool isLoading = false;
+  Map<String, int> driverShipmentsCount = {};
+  bool hasFetchedDrivers = false;
 
-  ordersByDriver(String driverId) {
-    setState(() {
-      selectedDriverId = driverId;
-
-      isLoading = true;
-    });
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('orders')
-        .where('driverId', isEqualTo: driverId);
-    // .where('status',
-    //     whereNotIn: ["تم توصيلها", "في الفرع", "بانتظار موافقة السائق"]);
+  void fetchDriverCounts() async {
+    Query<Map<String, dynamic>> query =
+        FirebaseFirestore.instance.collection('orders');
 
     if (widget.index == 1) {
       query = query.where('orderPossession', whereIn: [
         'driverFetching',
         'driverShipping',
         'driverReturning'
-      ]).where('status', whereIn: [
-        'تم إرجاعها',
-        'تم توصيلها بشكل جزئي',
-        'تم توصيلها',
-      ]);
+      ]).where('hasReturn', isEqualTo: true);
     } else {
       query = query.where('orderPossession',
           whereIn: ['driverFetching', 'driverShipping', 'driverReturning']);
     }
 
-    query.get().then((value) {
-      List<Shipment> orders =
-          value.docs.map((e) => Shipment.fromMap(e.data())).toList();
+    var value = await query.get();
+    List<Shipment> orders =
+        value.docs.map((e) => Shipment.fromMap(e.data())).toList();
 
-      if (widget.index == 0) {
-        orders = orders
-            .where((order) => ![
-                  "تم توصيلها",
-                  "في الفرع",
-                  "بانتظار موافقة السائق",
-                  "تم إرجاعها", // Exclude returned orders as they have their own index
-                  "تم توصيلها بشكل جزئي"
-                ].contains(order.status))
-            .toList();
-      } else if (widget.index == 1) {
-        // For 'تم توصيلها', 'بانتظار التحميل' or 'في المركبة' orders, only keep those with paymentMethod 'تبديل' or 'إحضار'
-        orders = orders.where((order) {
-          if (order.status == 'تم توصيلها') {
-            return order.paymentMethod == 'تبديل' ||
-                order.paymentMethod == 'إحضار';
-          }
-          return true; // Keep 'تم إرجاعها' and 'تم توصيلها بشكل جزئي' as-is
-        }).toList();
+    if (widget.index == 0) {
+      orders = orders
+          .where((order) => ![
+                "تم توصيلها",
+                "في الفرع",
+                "بانتظار موافقة السائق",
+                "تم إرجاعها",
+                "تم توصيلها بشكل جزئي"
+              ].contains(order.status))
+          .toList();
+    } else if (widget.index == 1) {
+      orders = orders.where((order) => order.hasReturn == true).toList();
+    }
+
+    Map<String, int> counts = {};
+    for (var order in orders) {
+      if (order.driverId != null) {
+        counts[order.driverId!] = (counts[order.driverId!] ?? 0) + 1;
       }
+    }
 
+    if (mounted) {
       setState(() {
-        selectedShipments = orders.toSet();
-        isLoading = false;
+        shipments = orders;
+        driverShipmentsCount = counts;
+        hasFetchedDrivers = true;
       });
+      if (widget.driverId != null) {
+        ordersByDriver(widget.driverId!);
+      }
+    }
+  }
+
+  ordersByDriver(String driverId) {
+    setState(() {
+      selectedDriverId = driverId;
+      selectedShipments =
+          shipments.where((order) => order.driverId == driverId).toSet();
+      isLoading = false;
     });
   }
 
   @override
   void initState() {
     super.initState();
-    if (widget.driverId != null) {
-      ordersByDriver(widget.driverId!);
-    }
+    fetchDriverCounts();
   }
 
   final ScrollController _horizontalScrollController = ScrollController();
@@ -209,6 +211,13 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
                     if (value == true) {
                       selectedOrderIds
                           .addAll(selectedShipments.map((e) => e.orderId));
+                      if (widget.index == 1) {
+                        selectedOrderIds.removeWhere((orderId) =>
+                            shipments
+                                .firstWhere((e) => e.orderId == orderId)
+                                .cashPossession ==
+                            CashPossession.driver);
+                      }
                     } else {
                       selectedOrderIds.clear();
                     }
@@ -246,15 +255,18 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
       children: [
         _buildTableCell(Checkbox(
           value: isSelected,
-          onChanged: (value) {
-            setState(() {
-              if (value == true) {
-                selectedOrderIds.add(shipment.orderId);
-              } else {
-                selectedOrderIds.remove(shipment.orderId);
-              }
-            });
-          },
+          onChanged: widget.index == 1 &&
+                  shipment.cashPossession == CashPossession.driver
+              ? null
+              : (value) {
+                  setState(() {
+                    if (value == true) {
+                      selectedOrderIds.add(shipment.orderId);
+                    } else {
+                      selectedOrderIds.remove(shipment.orderId);
+                    }
+                  });
+                },
           activeColor: Colors.green,
         )),
         _buildTableCell(shipment.parcelCount.toString()),
@@ -461,6 +473,12 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
   }
 
   Widget _buildDriverSection(AppProvider appProvider) {
+    List<Driver> displayDrivers = appProvider.drivers
+        .where((driver) =>
+            driverShipmentsCount.containsKey(driver.userid) &&
+            driverShipmentsCount[driver.userid]! > 0)
+        .toList();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -480,23 +498,25 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
               border: Border.all(color: Colors.grey.shade200),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: appProvider.drivers.length,
-              itemBuilder: (context, index) {
-                return _buildDriverItem(appProvider.drivers[index]);
-              },
-            ),
+            child: hasFetchedDrivers
+                ? ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: displayDrivers.length,
+                    itemBuilder: (context, index) {
+                      return _buildDriverItem(
+                          displayDrivers[index],
+                          driverShipmentsCount[displayDrivers[index].userid] ??
+                              0);
+                    },
+                  )
+                : Center(child: CircularProgressIndicator()),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDriverItem(Driver driver) {
-    List<Shipment> driverShipments = shipments
-        .where((shipment) => shipment.driverId == driver.userid)
-        .toList();
+  Widget _buildDriverItem(Driver driver, int count) {
     return ListTile(
       selected: selectedDriverId == driver.userid,
       onTap: () {
@@ -513,18 +533,17 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
         driver.username ?? '',
         style: TextStyle(fontSize: 13),
       ),
-      // trailing: Container(
-      //   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      //   decoration: BoxDecoration(
-      //     color: Colors.grey.shade100,
-      //     borderRadius: BorderRadius.circular(12),
-      //   ),
-      //   child: Text(
-      //     //todo
-      //     '${driverShipments.length} طرد',
-      //     style: TextStyle(fontSize: 12),
-      //   ),
-      // ),
+      trailing: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '$count طرد',
+          style: TextStyle(fontSize: 12),
+        ),
+      ),
     );
   }
 
@@ -598,6 +617,7 @@ class _DeliveryReceiveDialogState extends State<DeliveryReceiveDialog> {
             label: Text('استلام'),
             onPressed: () {
               String status = widget.index == 0 ? "في الفرع" : "تم إرجاعها";
+
               for (String orderId in selectedOrderIds) {
                 if (widget.index == 0) {
                   appProvider.updateOrderStatus(orderId, status, null, null,

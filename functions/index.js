@@ -1,8 +1,80 @@
 const functions = require("firebase-functions/v1");
 const admin = require("firebase-admin");
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
 const axios = require("axios");
 
 admin.initializeApp();
+const db = admin.firestore();
+
+/**
+ * Builds the Firestore Data Bundle for the 'products' collection.
+ * @return {Promise<Buffer>} The bundle buffer.
+ */
+async function buildProductBundle() {
+    const bundle = db.bundle("products-bundle");
+    const productsQuery = db.collection("products");
+
+    // You can add filtering or limiting here if needed.
+    // For example: productsQuery.where('active', '==', true)
+
+    const productsSnapshot = await productsQuery.get();
+    const bundleBuffer = bundle.add("all-products-query", productsSnapshot).build();
+    return bundleBuffer;
+}
+
+/**
+ * HTTP function to serve the product bundle dynamically.
+ * Use this if you need to fetch the bundle directly via HTTP.
+ */
+exports.serveBundle = onRequest(async (req, res) => {
+    // Set cache control for 5 minutes (300 seconds)
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=600');
+
+    try {
+        const bundleBuffer = await buildProductBundle();
+        res.end(bundleBuffer);
+    } catch (error) {
+        console.error("Error building bundle:", error);
+        res.status(500).send("Error building bundle");
+    }
+});
+
+/**
+ * Trigger function that runs when a product is updated.
+ * It rebuilds the bundle and saves it to Cloud Storage for static serving.
+ * This is more efficient for high-read scenarios.
+ */
+exports.onProductChanged = onDocumentUpdated("products/{productId}", async (event) => {
+    console.log(`Product updated: ${event.params.productId}. Rebuilding bundle...`);
+
+    try {
+        const bundleBuffer = await buildProductBundle();
+
+        // Save to default Cloud Storage bucket
+        const bucket = admin.storage().bucket();
+        const file = bucket.file("bundles/products.txt");
+
+        await file.save(bundleBuffer, {
+            contentType: "text/plain", // Bundles are text-based or binary, but usually handled as raw bytes or text
+            metadata: {
+                cacheControl: "public, max-age=300",
+            },
+        });
+
+        console.log("Bundle rebuilt and saved to storage: bundles/products.txt");
+
+        // Increment bundle version
+        const configRef = db.collection("configs").doc("values");
+        await configRef.set({
+            bundleVersion: admin.firestore.FieldValue.increment(1)
+        }, { merge: true });
+
+        console.log("Bundle version incremented.");
+    } catch (error) {
+        console.error("Error rebuilding bundle on trigger:", error);
+    }
+});
 
 exports.proxyRequest = functions.https.onCall(async (data, context) => {
     try {
@@ -29,7 +101,7 @@ exports.proxyRequest = functions.https.onCall(async (data, context) => {
         });
         console.log("Proxy response status:", response.status);
 
-        // Return entire object as string to bypass Firebase SDK's Int64 issues on Web
+        // Return entire object as string string to bypass Firebase SDK's Int64 issues on Web
         return JSON.stringify({
             status: response.status,
             data: response.data,

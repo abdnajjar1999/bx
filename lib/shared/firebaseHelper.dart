@@ -392,8 +392,9 @@ class FirebaseHelper {
     return snapshot.docs.map((e) => Driver.fromJson(e.data())).toList();
   }
 
-  Future<void> assignDriver(String orderId, Driver driver) async {
-    await _fireStore.collection('orders').doc(orderId).update({
+  Future<void> assignDriver(String orderId, Driver driver,
+      {double? driverPrice}) async {
+    final Map<String, dynamic> updateData = {
       'driverId': driver.userid,
       'driverName': driver.username,
       'status': 'في المركبة',
@@ -407,7 +408,11 @@ class FirebaseHelper {
           'userName': user?.displayName ?? "مجهول"
         }
       ])
-    });
+    };
+    if (driverPrice != null) {
+      updateData['driverPrice'] = driverPrice;
+    }
+    await _fireStore.collection('orders').doc(orderId).update(updateData);
     _notificationService.createNotification(
       title: 'تم تعيين الشحنة للسائق ${driver.username}',
       message: 'يمكنك الان تحصيل الشحنة منها',
@@ -425,6 +430,7 @@ class FirebaseHelper {
       Shelf? shelf,
       OrderPossession? orderPossession,
       DateTime? postponementDate,
+      bool? hasReturn,
       double returnedOrderCollection = 0.0}) async {
     if (status == "تم توصيلها" || status == "تم توصيلها بشكل جزئي") {
       var shipmentData =
@@ -449,6 +455,7 @@ class FirebaseHelper {
         'returnedAfterDelivery': returnedAfterDelivery,
         'returnedOrderCollection': returnedOrderCollection,
       },
+      if (hasReturn != null) 'hasReturn': hasReturn,
       if (shelf != null) ...{
         'shelfId': shelf.id,
         'shelfName': shelf.name,
@@ -659,8 +666,11 @@ class FirebaseHelper {
       required List<Driver> drivers}) {
     print(selectedDriverId);
     List<DriverDeliveryData> driverDeliveryData = [];
-    Query query = _fireStore.collection('orders').where('status',
-        whereIn: ["تم توصيلها", "تم توصيلها بشكل جزئي", "تم إرجاعها"]);
+    Query query = _fireStore.collection('orders').where('status', whereIn: [
+      "تم توصيلها",
+      "تم توصيلها بشكل جزئي",
+      "تم إرجاعها",
+    ]);
 
     if (selectedCustomerId != null) {
       query = query.where('userId', isEqualTo: selectedCustomerId);
@@ -758,7 +768,8 @@ class FirebaseHelper {
             OrderPossession.receiver.toString().split('.').last;
       }
 
-      batch.update(_fireStore.collection('orders').doc(shipment.orderId), updateData);
+      batch.update(
+          _fireStore.collection('orders').doc(shipment.orderId), updateData);
 
       // Update user document if userId exists
       if (shipment.userId != null) {

@@ -189,6 +189,7 @@ class Shipment {
   final bool isPayToRecipient; // الدفع للمستلم
   final double
       returnedOrderCollection; // اجور الطلب المرتجع (تحصيل السائق عند الإرجاع)
+  final bool hasReturn; // هل يوجد مرتجع
 
   Shipment({
     this.customerlocation,
@@ -233,6 +234,7 @@ class Shipment {
     this.selectedItems,
     this.isShipmentWithItems = false,
     this.shelf,
+    this.driverPrice,
     this.reassignedToDriver = false,
     this.otp,
     this.isSentToFaotara = false,
@@ -242,6 +244,7 @@ class Shipment {
     this.isCompanyDeliveryFeePaid = false,
     this.isPayToRecipient = false,
     this.returnedOrderCollection = 0.0,
+    this.hasReturn = false,
   });
 
   factory Shipment.fromMap(Map<String, dynamic> map) {
@@ -328,6 +331,8 @@ class Shipment {
       isPayToRecipient: map['isPayToRecipient'] ?? false,
       returnedOrderCollection:
           (map['returnedOrderCollection'] ?? 0.0).toDouble(),
+      hasReturn: map['hasReturn'] ?? false,
+      driverPrice: map['driverPrice']?.toDouble(),
     );
   }
 
@@ -384,6 +389,8 @@ class Shipment {
       'isCompanyDeliveryFeePaid': isCompanyDeliveryFeePaid,
       'isPayToRecipient': isPayToRecipient,
       'returnedOrderCollection': returnedOrderCollection,
+      'hasReturn': hasReturn,
+      'driverPrice': driverPrice,
     };
   }
 
@@ -440,6 +447,8 @@ class Shipment {
     bool? isDeliveryFeeOnRecipient,
     bool? isCompanyDeliveryFeePaid,
     bool? isPayToRecipient,
+    bool? hasReturn,
+    double? driverPrice,
   }) {
     return Shipment(
       shelf: shelf ?? this.shelf,
@@ -499,6 +508,8 @@ class Shipment {
       isPayToRecipient: isPayToRecipient ?? this.isPayToRecipient,
       returnedOrderCollection:
           returnedOrderCollection ?? this.returnedOrderCollection,
+      hasReturn: hasReturn ?? this.hasReturn,
+      driverPrice: driverPrice ?? this.driverPrice,
     );
   }
 
@@ -563,9 +574,9 @@ class Shipment {
           .where((element) => shipment.city.contains(element.to))
           .toList();
 
-      if (shippingRoute.isNotEmpty) {
+      if (shippingRoute.isNotEmpty && shipment.driverPrice == null) {
         shipment.driverPrice = shippingRoute.first.deliveryPrice;
-      } else {
+      } else if (shipment.driverPrice == null) {
         shipment.driverPrice = 0;
       }
 

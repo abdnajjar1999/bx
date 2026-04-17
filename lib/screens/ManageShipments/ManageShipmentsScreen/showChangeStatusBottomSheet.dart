@@ -641,6 +641,7 @@ void showChangeStatusBottomSheet(
                                 postponementDate: status == "مؤجلة لوقت آخر"
                                     ? postponementDate
                                     : null,
+                                hasReturn: (status == "تم إرجاعها" || status == "تم توصيلها بشكل جزئي") ? true : null,
                               );
                               if (status == "مؤجلة لوقت آخر" &&
                                   priceChanged &&
@@ -685,7 +686,9 @@ void showChangeStatusBottomSheet(
                                     orderPossession: orderPossession,
                                     postponementDate: status == "مؤجلة لوقت آخر"
                                         ? postponementDate
-                                        : null);
+                                        : null,
+                                    hasReturn: (status == "تم إرجاعها" || status == "تم توصيلها بشكل جزئي") ? true : null,
+                                );
                               });
                             }
                             Navigator.pop(context);

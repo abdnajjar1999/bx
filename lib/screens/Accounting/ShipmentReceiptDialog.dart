@@ -27,6 +27,7 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
   DriverDeliveryData? selectedDeliveryData;
   List<DriverDeliveryData> deliveryDataList = [];
   Set<String> selectedOrderIds = {};
+  Future<List<Shipment>>? _postponedShipmentsFuture;
 
   // Add filter controllers
   final TextEditingController _dateFilter = TextEditingController();
@@ -172,6 +173,10 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
           selectedDeliveryData = data;
           appProvider.selectedDriver = appProvider.drivers
               .firstWhere((element) => element.username == data.driverName);
+          _postponedShipmentsFuture = FirebaseHelper().getOrders(
+            status: "مؤجلة لوقت آخر",
+            driverId: appProvider.selectedDriver?.userid,
+          );
         });
       },
       tileColor: isSelected ? Color(0xFFDC2626).withOpacity(0.1) : null,
@@ -340,7 +345,54 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
           child: SingleChildScrollView(
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: _buildShipmentsTable(),
+                child: Column(
+                  children: [
+                    _buildShipmentsTable(),
+                    if (_postponedShipmentsFuture != null) ...[
+                      SizedBox(height: 24),
+                      Divider(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.schedule, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text(
+                              'شحنات مؤجلة لوقت آخر',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      FutureBuilder<List<Shipment>>(
+                        future: _postponedShipmentsFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+                          if (snapshot.hasError) {
+                            return Text('Error: ${snapshot.error}');
+                          }
+                          final postponedShipments = snapshot.data ?? [];
+                          if (postponedShipments.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'لا توجد شحنات مؤجلة لهذا السائق',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            );
+                          }
+                          return _buildPostponedTable(postponedShipments);
+                        },
+                      ),
+                    ],
+                  ],
+                ),
             ),
           ),
         ),
@@ -549,6 +601,45 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
     );
   }
 
+  Widget _buildPostponedTable(List<Shipment> shipments) {
+    return Table(
+      border: TableBorder.all(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      children: [
+        TableRow(
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+          ),
+          children: [
+            _buildTableCell('تاريخ التأجيل'),
+            _buildTableCell('تاريخ الطلب'),
+            _buildTableCell('الزبون'),
+            _buildTableCell('رقم الهاتف'),
+            _buildTableCell('التحصيل'),
+            _buildTableCell('تكلفة التوصيل'),
+            _buildTableCell('الحالة'),
+          ],
+        ),
+        ...shipments.map((shipment) => TableRow(
+              children: [
+                _buildTableCell(shipment.postponementDate != null
+                    ? intl.DateFormat('MM/dd').format(shipment.postponementDate!)
+                    : '-'),
+                _buildTableCell(intl.DateFormat('MM/dd')
+                    .format(shipment.lastUpdated ?? DateTime.now())),
+                _buildTableCell(shipment.username ?? ''),
+                _buildTableCell(shipment.phoneNumber ?? ''),
+                _buildTableCell('${shipment.codAmount}'),
+                _buildTableCell(shipment.deliveryCost.toString()),
+                _buildTableCell(_buildStatusBadge(shipment.status)),
+              ],
+            )),
+      ],
+    );
+  }
+
   Widget _buildStatusBadge(String status) {
     Color bgColor;
     Color textColor;
@@ -613,6 +704,7 @@ class _ShipmentReceiptDialogState extends State<ShipmentReceiptDialog> {
               setState(() {
                 selectedDeliveryData = null;
                 selectedOrderIds.clear();
+                _postponedShipmentsFuture = null;
               });
             },
             child: Text('إلغاء'),

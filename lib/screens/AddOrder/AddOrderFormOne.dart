@@ -72,6 +72,10 @@ class AddOrderFormState extends State<AddOrderFormOne> {
       TextEditingController();
   final TextEditingController driverSearchController = TextEditingController();
 
+  // Focus nodes for sequential field navigation
+  final FocusNode _regionFocusNode = FocusNode();
+  final FocusNode _addressDescFocusNode = FocusNode();
+
   // Form State
   String? selectedCity;
   String? selectedRegion;
@@ -222,6 +226,8 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     serviceTypeSearchController.dispose();
     customerSearchController.dispose();
     driverSearchController.dispose();
+    _regionFocusNode.dispose();
+    _addressDescFocusNode.dispose();
     super.dispose();
   }
 
@@ -304,6 +310,8 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           isDeliveryFeeOnRecipient: isDeliveryFeeOnRecipient,
           isCompanyDeliveryFeePaid: isCompanyDeliveryFeePaid,
           isPayToRecipient: isPayToRecipient,
+          hasReturn: (selectedPaymentMethod == 'تبديل' ||
+              selectedPaymentMethod == 'إحضار'),
           logs: _isEditMode
               ? [
                   ...widget.shipment!.logs,
@@ -363,6 +371,7 @@ class AddOrderFormState extends State<AddOrderFormOne> {
           'isDeliveryFeeOnRecipient': shipmentData.isDeliveryFeeOnRecipient,
           'isCompanyDeliveryFeePaid': shipmentData.isCompanyDeliveryFeePaid,
           'isPayToRecipient': shipmentData.isPayToRecipient,
+          'hasReturn': shipmentData.hasReturn,
           'selectedItems': shipmentData.selectedItems,
           'isShipmentWithItems': shipmentData.isShipmentWithItems,
         };
@@ -434,6 +443,52 @@ class AddOrderFormState extends State<AddOrderFormOne> {
             isCompanyDeliveryFeePaid = false;
             isPayToRecipient = false;
           });
+
+          break;
+        case 'save_and_not_close':
+          // Clear form fields
+          _formKey.currentState!.reset();
+          deliveryCostController.clear();
+          addressDescController.clear();
+          recipientNameController.clear();
+          phoneController.clear();
+          codAmountController.clear();
+          trackingNumberController.clear();
+          contentController.clear();
+          weightController.clear();
+          notesController.clear();
+
+          setState(() {
+            selectedCity = null;
+            appProvider.selectedCityPlace = null;
+            selectedCityPlace = null;
+            selectedPaymentMethod = 'إحضار';
+            selectedCollectionMethod = 'كاش';
+            selectedServiceType = 'اعتيادي';
+            parcelCount = 1;
+            deliveryDate = null;
+            expectedDeliveryDate = null;
+            packageAttributes = PackageAttributes(
+              isFragile: false,
+              needsPackaging: false,
+              hasDangerousMaterials: false,
+              isNonOpenable: false,
+              canBeFolded: false,
+              measurementForbidden: false,
+            );
+            showInventorySection = false;
+            selectedInventoryItems.clear();
+            _availableSupplyOrders.clear();
+            _selectedSupplyQuantities.clear();
+
+            isDeliveryFeeOnRecipient = true;
+            isCompanyDeliveryFeePaid = false;
+            isPayToRecipient = false;
+            appProvider.selectedCustomer = null;
+            appProvider.selectedCityPlace = null;
+            appProvider.selectedDriver = null;
+          });
+
           break;
       }
     } catch (e) {
@@ -723,16 +778,35 @@ class AddOrderFormState extends State<AddOrderFormOne> {
             ),
           ],
         ),
-        ListTile(
-          title: Text('حفظ ومتابعة الإضافة'),
-          leading: Radio<String>(
-            value: 'save_and_continue',
-            groupValue: _submitAction,
-            onChanged: (String? value) {
-              setState(() => _submitAction = value!);
-            },
-            activeColor: Color(0xFFDC2626),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: ListTile(
+                title: Text('حفظ ومتابعة الإضافة'),
+                leading: Radio<String>(
+                  value: 'save_and_continue',
+                  groupValue: _submitAction,
+                  onChanged: (String? value) {
+                    setState(() => _submitAction = value!);
+                  },
+                  activeColor: Color(0xFFDC2626),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListTile(
+                title: Text('حفظ وعدم اغلاق'),
+                leading: Radio<String>(
+                  value: 'save_and_not_close',
+                  groupValue: _submitAction,
+                  onChanged: (String? value) {
+                    setState(() => _submitAction = value!);
+                  },
+                  activeColor: Color(0xFFDC2626),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -926,62 +1000,307 @@ class AddOrderFormState extends State<AddOrderFormOne> {
             ),
           ],
         ),
+        // ── OLD CODE (SearchableDropdown) – commented out ──────────────────
+        // Row(
+        //   children: [
+        //     Expanded(
+        //       flex: 2,
+        //       child: SearchableDropdown<String>(
+        //         label: 'المدينة',
+        //         value: selectedCity,
+        //         items: appProvider.cities,
+        //         onChanged: (value) {
+        //           setState(() {
+        //             selectedCity = value;
+        //             selectedRegion = null;
+        //             selectedCityPlace = value;
+        //           });
+        //           calculateDeliveryCost(appProvider);
+        //           _cheakForDriver(appProvider);
+        //         },
+        //         searchController: citySearchController,
+        //         hint: 'اختر المدينة',
+        //       ),
+        //     ),
+        //     SizedBox(width: 8),
+        //     Expanded(
+        //       flex: 3,
+        //       child: SearchableDropdown<String>(
+        //         label: 'المنطقة',
+        //         value: selectedRegion,
+        //         items: selectedCity != null
+        //             ? appProvider.citiesAndPlaces
+        //                 .firstWhere((c) => c.name == selectedCity,
+        //                     orElse: () => City(name: selectedCity!, places: []))
+        //                 .places
+        //             : [],
+        //         onChanged: (value) {
+        //           setState(() {
+        //             selectedRegion = value;
+        //             selectedCityPlace =
+        //                 (selectedCity ?? "") + " " + (value ?? "");
+        //           });
+        //           _cheakForDriver(appProvider);
+        //         },
+        //         searchController: TextEditingController(),
+        //         hint: 'اختر المنطقة',
+        //       ),
+        //     ),
         Row(
           children: [
+            // ── المدينة – Autocomplete ────────────────────────────────────
             Expanded(
               flex: 2,
-              child: SearchableDropdown<String>(
-                label: 'المدينة',
-                value: selectedCity,
-                items: appProvider.cities,
-                onChanged: (value) {
-                  setState(() {
-                    selectedCity = value;
-                    selectedRegion = null; // Clear region when city changes
-                    selectedCityPlace = value;
-                  });
-
-                  calculateDeliveryCost(appProvider);
-                  _cheakForDriver(appProvider);
-                },
-                searchController: citySearchController,
-                hint: 'اختر المدينة',
-              ),
+              child: _buildCityAutocomplete(appProvider),
             ),
             SizedBox(width: 8),
+            // ── المنطقة – Autocomplete ────────────────────────────────────
             Expanded(
               flex: 3,
-              child: SearchableDropdown<String>(
-                label: 'المنطقة',
-                value: selectedRegion,
-                items: selectedCity != null
-                    ? appProvider.citiesAndPlaces
-                        .firstWhere((c) => c.name == selectedCity,
-                            orElse: () => City(name: selectedCity!, places: []))
-                        .places
-                    : [],
-                onChanged: (value) {
-                  setState(() {
-                    selectedRegion = value;
-                    selectedCityPlace =
-                        (selectedCity ?? "") + " " + (value ?? "");
-                  });
-                  _cheakForDriver(appProvider);
-                },
-                searchController:
-                    TextEditingController(), // Separate controller if needed
-                hint: 'اختر المنطقة',
-              ),
+              child: _buildRegionAutocomplete(appProvider),
             ),
             SizedBox(width: 16),
             Expanded(
               flex: 3,
               child: _buildTextField(
-                  controller: addressDescController, label: 'وصف العنوان'),
+                  controller: addressDescController,
+                  label: 'وصف العنوان',
+                  focusNode: _addressDescFocusNode),
             ),
           ],
         ),
       ],
+    );
+  }
+
+  // ── المدينة – Autocomplete helper ──────────────────────────────────────────
+  Widget _buildCityAutocomplete(AppProvider appProvider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: FormField<String>(
+        initialValue: selectedCity,
+        validator: (_) {
+          if (selectedCity == null || selectedCity!.trim().isEmpty) {
+            return 'هذا الحقل مطلوب';
+          }
+          return null;
+        },
+        builder: (FormFieldState<String> state) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Autocomplete<String>(
+                initialValue: selectedCity != null
+                    ? TextEditingValue(text: selectedCity!)
+                    : null,
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') {
+                    return appProvider.cities;
+                  }
+                  return appProvider.cities.where((city) => city
+                      .toLowerCase()
+                      .contains(textEditingValue.text.toLowerCase()));
+                },
+                onSelected: (String city) {
+                  setState(() {
+                    selectedCity = city;
+                    selectedRegion = null;
+                    selectedCityPlace = city;
+                  });
+                  state.didChange(city);
+                  calculateDeliveryCost(appProvider);
+                  _cheakForDriver(appProvider);
+                  // Move focus to region field
+                  _regionFocusNode.requestFocus();
+                },
+                fieldViewBuilder:
+                    (context, textController, focusNode, onFieldSubmitted) {
+                  return TextFormField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    onFieldSubmitted: (value) {
+                      final filtered = appProvider.cities
+                          .where((city) =>
+                              city.toLowerCase().contains(value.toLowerCase()))
+                          .toList();
+                      if (filtered.isNotEmpty) {
+                        final selection = filtered.first;
+                        setState(() {
+                          selectedCity = selection;
+                          selectedRegion = null;
+                          selectedCityPlace = selection;
+                        });
+                        state.didChange(selection);
+                        textController.text = selection;
+                        calculateDeliveryCost(appProvider);
+                        _cheakForDriver(appProvider);
+                        _regionFocusNode.requestFocus();
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'المدينة *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Color(0xFFDC2626)),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                  );
+                },
+              ),
+              if (state.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, right: 12),
+                  child: Text(
+                    state.errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // ── المنطقة – Autocomplete helper ──────────────────────────────────────────
+  Widget _buildRegionAutocomplete(AppProvider appProvider) {
+    final List<String> regionOptions = selectedCity != null
+        ? appProvider.citiesAndPlaces
+            .firstWhere((c) => c.name == selectedCity,
+                orElse: () => City(name: selectedCity!, places: []))
+            .places
+        : [];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: FormField<String>(
+        key: ValueKey(selectedCity), // Rebuild when city changes
+        initialValue: selectedRegion,
+        validator: (_) {
+          final typed = selectedRegion?.trim() ?? '';
+          if (typed.isNotEmpty &&
+              regionOptions.isNotEmpty &&
+              !regionOptions.contains(typed)) {
+            return 'يرجى اختيار منطقة من القائمة';
+          }
+          return null;
+        },
+        builder: (FormFieldState<String> state) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AbsorbPointer(
+                absorbing: selectedCity == null,
+                child: Opacity(
+                  opacity: selectedCity == null ? 0.4 : 1.0,
+                  child: Autocomplete<String>(
+                    key: ValueKey('region_$selectedCity'),
+                    initialValue: selectedRegion != null
+                        ? TextEditingValue(text: selectedRegion!)
+                        : null,
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text == '') {
+                        return regionOptions;
+                      }
+                      return regionOptions.where((region) => region
+                          .toLowerCase()
+                          .contains(textEditingValue.text.toLowerCase()));
+                    },
+                    onSelected: (String region) {
+                      setState(() {
+                        selectedRegion = region;
+                        selectedCityPlace =
+                            '${selectedCity ?? ''} $region'.trim();
+                      });
+                      state.didChange(region);
+                      _cheakForDriver(appProvider);
+                      // Move focus to address description field
+                      _addressDescFocusNode.requestFocus();
+                    },
+                    fieldViewBuilder:
+                        (context, textController, focusNode, onFieldSubmitted) {
+                      return Focus(
+                        // When _regionFocusNode gains focus, forward it to the
+                        // Autocomplete's internal focusNode
+                        focusNode: _regionFocusNode,
+                        onFocusChange: (hasFocus) {
+                          if (hasFocus) focusNode.requestFocus();
+                        },
+                        child: TextFormField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          onFieldSubmitted: (value) {
+                            final filtered = regionOptions
+                                .where((region) => region
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()))
+                                .toList();
+                            if (filtered.isNotEmpty) {
+                              final selection = filtered.first;
+                              setState(() {
+                                selectedRegion = selection;
+                                selectedCityPlace =
+                                    '${selectedCity ?? ''} $selection'.trim();
+                              });
+                              state.didChange(selection);
+                              textController.text = selection;
+                              _cheakForDriver(appProvider);
+                              _addressDescFocusNode.requestFocus();
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: 'المنطقة',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Color(0xFFDC2626)),
+                            ),
+                            disabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade200),
+                            ),
+                            filled: true,
+                            fillColor: selectedCity == null
+                                ? Colors.grey.shade100
+                                : Colors.white,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (state.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, right: 12),
+                  child: Text(
+                    state.errorText!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -1494,11 +1813,13 @@ class AddOrderFormState extends State<AddOrderFormOne> {
     String? Function(String?)? validator,
     TextEditingController? controller,
     int? maxLines,
+    FocusNode? focusNode,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
+        focusNode: focusNode,
         maxLines: maxLines ?? 1,
         decoration: InputDecoration(
           labelText: isRequired ? '$label *' : label,

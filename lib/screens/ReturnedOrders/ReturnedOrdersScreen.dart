@@ -111,8 +111,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
 
   Future<void> loadReturnedShipments() async {
     try {
-      Query<Map<String, dynamic>> query =
-          FirebaseFirestore.instance.collection('orders');
+      Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+          .collection('orders')
+          .where('hasReturn', isEqualTo: true);
 
       if (widget.sectionIndex == 35) {
         query = query
@@ -127,15 +128,17 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
         } else if (widget.sectionIndex == 36) {
           query = query.where('paymentMethod', isEqualTo: 'إحضار');
         }
-      } else {
+      } else if (widget.sectionIndex == 33) {
         query = query
             .where('status', isEqualTo: 'تم إرجاعها')
             .where('orderPossession', isEqualTo: 'branch');
+      } else {
+        query = query.where('orderPossession', isEqualTo: 'branch');
       }
 
-      if (widget.sectionIndex != 35 && widget.sectionIndex != 32) {
-        query = query.where('cashPossession', isEqualTo: 'customer');
-      }
+      // if (widget.sectionIndex != 35 && widget.sectionIndex != 32) {
+      //   query = query.where('cashPossession', isEqualTo: 'customer');
+      // }
 
       query.snapshots().listen((snapshot) {
         if (!mounted) return;
@@ -150,6 +153,7 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
         });
       });
     } catch (e) {
+      print(e);
       if (!mounted) return;
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,6 +201,68 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
       );
     } finally {
       setState(() => isProcessing = false);
+    }
+  }
+
+  Future<void> _handleDeliverToSender() async {
+    if (selectedOrders.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدد طلبات أولاً')));
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('تحذير',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text('هل أنت متأكد من تسليم ${selectedOrders.length} طلب إلى المرسل؟', textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('تأكيد وتسليم', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => isProcessing = true);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (var shipment in selectedOrders) {
+        final orderRef = FirebaseFirestore.instance
+            .collection('orders')
+            .doc(shipment.orderId);
+        batch.update(orderRef, {'orderPossession': 'customer'});
+      }
+      await batch.commit();
+
+      final count = selectedOrders.length;
+      setState(() => selectedOrders.clear());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم تسليم $count طلب إلى المرسل بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء العملية')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isProcessing = false);
+      }
     }
   }
 
@@ -253,16 +319,7 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                   style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFECAAA4)),
-              onPressed: () {
-                if (selectedOrders.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('حدد طلبات أولاً')));
-                  return;
-                }
-                // Future feature logic
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('قيد التطوير')));
-              },
+              onPressed: isProcessing ? null : _handleDeliverToSender,
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(
@@ -453,6 +510,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                     label: Text('باركود الطرد',
                         style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(
+                    label: Text('حاله الطلب',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                DataColumn(
                     label: Text('السعر',
                         style: TextStyle(fontWeight: FontWeight.bold))),
                 DataColumn(
@@ -500,6 +560,9 @@ class _ReturnedOrdersScreenState extends State<ReturnedOrdersScreen> {
                         activeColor: primary,
                       )),
                       DataCell(Text(shipment.orderId,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, color: primary))),
+                      DataCell(Text(shipment.status,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, color: primary))),
                       DataCell(Text('${shipment.deliveryCost} د.أ')),

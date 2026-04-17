@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:intl/intl.dart' as intl;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,7 +23,12 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
   List<Shipment> returnedShipments = [];
   List<Shipment> filteredShipments = [];
   bool isLoading = true;
+  bool isFetchingMore = false;
+  bool isProcessing = false;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  int _limit = 50;
+  StreamSubscription<QuerySnapshot>? _shipmentSubscription;
 
   DateTimeRange? _dateRange;
   String? _selectedCity;
@@ -32,13 +38,37 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
     loadReturnedShipments();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent) {
+      if (!isFetchingMore && returnedShipments.length >= _limit) {
+        setState(() {
+          isFetchingMore = true;
+          _limit += 50;
+        });
+        loadReturnedShipments();
+      }
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
+    _shipmentSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AllReturnedOrders oldWidget) {
+    if (oldWidget.sectionIndex != widget.sectionIndex) {
+      loadReturnedShipments();
+    }
+    super.didUpdateWidget(oldWidget);
   }
 
   String get dynamicTitle {
@@ -91,9 +121,10 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
 
   Future<void> loadReturnedShipments() async {
     try {
+      _shipmentSubscription?.cancel();
       Query<Map<String, dynamic>> query = FirebaseFirestore.instance
           .collection('orders')
-          .where('status', isEqualTo: 'تم إرجاعها');
+          .where('hasReturn', isEqualTo: true);
 
       if (widget.sectionIndex == 37) {
         query = query.where('orderPossession', isEqualTo: 'driverReturning');
@@ -101,7 +132,9 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
         query = query.where('orderPossession', isEqualTo: 'customer');
       }
 
-      query.snapshots().listen((snapshot) {
+      query = query.limit(_limit);
+
+      _shipmentSubscription = query.snapshots().listen((snapshot) {
         if (!mounted) return;
         setState(() {
           returnedShipments = snapshot.docs
@@ -110,14 +143,83 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
               .toList();
           _applyFilters();
           isLoading = false;
+          isFetchingMore = false;
         });
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => isLoading = false);
+      setState(() {
+        isLoading = false;
+        isFetchingMore = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('حدث خطأ أثناء تحميل البيانات')),
       );
+    }
+  }
+
+  Future<void> _handleDeliverToSender() async {
+    if (selectedOrders.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('حدد طلبات أولاً')));
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('تحذير',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(
+            'هل أنت متأكد من تسليم ${selectedOrders.length} طلب إلى المرسل؟',
+            textAlign: TextAlign.center),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('تأكيد وتسليم',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => isProcessing = true);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (var shipment in selectedOrders) {
+        final orderRef = FirebaseFirestore.instance
+            .collection('orders')
+            .doc(shipment.orderId);
+        batch.update(orderRef, {'orderPossession': 'customer'});
+      }
+      await batch.commit();
+
+      final count = selectedOrders.length;
+      setState(() => selectedOrders.clear());
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم تسليم $count طلب إلى المرسل بنجاح')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء العملية')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isProcessing = false);
+      }
     }
   }
 
@@ -157,58 +259,16 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.download, color: Colors.white),
-              label: const Text('استلام الطرود المرجعة',
-                  style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF24645)),
-              onPressed: () {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('قيد التطوير')));
-              },
-            ),
             const SizedBox(width: 8),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.send, color: Colors.white),
-              label: const Text('تسليم إلى المرسل',
-                  style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFECAAA4)),
-              onPressed: () {
-                if (selectedOrders.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('حدد طلبات أولاً')));
-                  return;
-                }
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('قيد التطوير')));
-              },
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.local_shipping, color: Colors.white),
-              label: const Text('تحميل مع السائق',
-                  style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF0B880)),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('هذا الإجراء غير متاح هنا')));
-              },
-            ),
-            const SizedBox(width: 8),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.receipt, color: Colors.white),
-              label: const Text('استلام من',
-                  style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE0C484)),
-              onPressed: () {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('قيد التطوير')));
-              },
-            ),
+            if (widget.sectionIndex == 37)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.send, color: Colors.white),
+                label: const Text('تسليم إلى المرسل',
+                    style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFECAAA4)),
+                onPressed: isProcessing ? null : _handleDeliverToSender,
+              ),
             const SizedBox(width: 16),
             if (selectedOrders.isNotEmpty) ...[
               IconButton(
@@ -379,50 +439,49 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SingleChildScrollView(
-            child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Colors.grey.shade50),
-              dataRowMinHeight: 60,
-              dataRowMaxHeight: 60,
-              columns: const [
-                DataColumn(label: Text('تحديد')),
-                DataColumn(
-                    label: Text('باركود الطرد',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('السعر',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('COD',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('الزبون',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('الهاتف',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('تاريخ الحجز',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-                DataColumn(
-                    label: Text('تاريخ استلام الرواجع',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
-              ],
-              rows: filteredShipments.map((shipment) {
-                final isSelected = selectedOrders.contains(shipment);
-                return DataRow(
-                    selected: isSelected,
-                    onSelectChanged: (val) {
-                      setState(() {
-                        if (val == true)
-                          selectedOrders.add(shipment);
-                        else
-                          selectedOrders.remove(shipment);
-                      });
-                    },
-                    cells: [
-                      DataCell(Checkbox(
-                        value: isSelected,
-                        onChanged: (val) {
+            controller: _scrollController,
+            child: Column(
+              children: [
+                DataTable(
+                  headingRowColor:
+                      MaterialStateProperty.all(Colors.grey.shade50),
+                  dataRowMinHeight: 60,
+                  dataRowMaxHeight: 60,
+                  columns: const [
+                    DataColumn(label: Text('تحديد')),
+                    DataColumn(
+                        label: Text('باركود الطرد',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('حاله الطلب',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('طريقه الدفع',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('السعر',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('COD',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('الزبون',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('الهاتف',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('تاريخ الحجز',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                    DataColumn(
+                        label: Text('تاريخ استلام الرواجع',
+                            style: TextStyle(fontWeight: FontWeight.bold))),
+                  ],
+                  rows: filteredShipments.map((shipment) {
+                    final isSelected = selectedOrders.contains(shipment);
+                    return DataRow(
+                        selected: isSelected,
+                        onSelectChanged: (val) {
                           setState(() {
                             if (val == true)
                               selectedOrders.add(shipment);
@@ -430,24 +489,44 @@ class _AllReturnedOrdersState extends State<AllReturnedOrders> {
                               selectedOrders.remove(shipment);
                           });
                         },
-                        activeColor: primary,
-                      )),
-                      DataCell(Text(shipment.orderId,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green))),
-                      DataCell(Text('${shipment.deliveryCost} د.أ')),
-                      DataCell(Text('${shipment.codAmount} د.أ')),
-                      DataCell(Text(shipment.recipientName)),
-                      DataCell(Text(shipment.phoneNumber)),
-                      DataCell(Text(intl.DateFormat('yyyy-MM-dd')
-                          .format(shipment.createdAt))),
-                      DataCell(Text(shipment.returnOrderDate != null
-                          ? intl.DateFormat('yyyy-MM-dd')
-                              .format(shipment.returnOrderDate!)
-                          : 'غير محدد')),
-                    ]);
-              }).toList(),
+                        cells: [
+                          DataCell(Checkbox(
+                            value: isSelected,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true)
+                                  selectedOrders.add(shipment);
+                                else
+                                  selectedOrders.remove(shipment);
+                              });
+                            },
+                            activeColor: primary,
+                          )),
+                          DataCell(Text(shipment.orderId,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green))),
+                          DataCell(Text(shipment.status)),
+                          DataCell(Text(shipment.paymentMethod)),
+                          DataCell(Text('${shipment.deliveryCost} د.أ')),
+                          DataCell(Text('${shipment.codAmount} د.أ')),
+                          DataCell(Text(shipment.recipientName)),
+                          DataCell(Text(shipment.phoneNumber)),
+                          DataCell(Text(intl.DateFormat('yyyy-MM-dd')
+                              .format(shipment.createdAt))),
+                          DataCell(Text(shipment.returnOrderDate != null
+                              ? intl.DateFormat('yyyy-MM-dd')
+                                  .format(shipment.returnOrderDate!)
+                              : 'غير محدد')),
+                        ]);
+                  }).toList(),
+                ),
+                if (isFetchingMore)
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(color: primary),
+                  ),
+              ],
             ),
           ),
         ),

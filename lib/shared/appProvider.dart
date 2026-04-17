@@ -148,8 +148,8 @@ class AppProvider extends ChangeNotifier {
     return await firebaseHelper.getOrder(orderId);
   }
 
-  assignDriver(String orderId, Driver driver) {
-    firebaseHelper.assignDriver(orderId, driver);
+  assignDriver(String orderId, Driver driver, {double? driverPrice}) {
+    firebaseHelper.assignDriver(orderId, driver, driverPrice: driverPrice);
     notifyListeners();
   }
 
@@ -165,6 +165,7 @@ class AppProvider extends ChangeNotifier {
       Shelf? shelf,
       OrderPossession? orderPossession,
       DateTime? postponementDate,
+      bool? hasReturn,
       double returnedOrderCollection = 0.0}) {
     if (!Utilities.checkPermission("تغير الحاله")) {
       return;
@@ -176,6 +177,7 @@ class AppProvider extends ChangeNotifier {
         shelf: shelf,
         orderPossession: orderPossession,
         postponementDate: postponementDate,
+        hasReturn: hasReturn,
         returnedOrderCollection: returnedOrderCollection);
   }
 

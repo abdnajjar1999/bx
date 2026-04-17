@@ -4,7 +4,8 @@ import '../../../shared/appProvider.dart';
 import '../../../models/InAppNotification.dart';
 
 class NotificationButton extends StatelessWidget {
-  const NotificationButton({Key? key}) : super(key: key);
+  final Function(InAppNotification) onTap;
+  const NotificationButton({Key? key, required this.onTap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class NotificationButton extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.notifications),
               onPressed: () {
-                showNotificationOverlay(context);
+                showNotificationOverlay(context, onTap);
               },
             ),
             if (appProvider.unreadNotifications > 0)
@@ -48,7 +49,8 @@ class NotificationButton extends StatelessWidget {
     );
   }
 
-  void showNotificationOverlay(BuildContext context) {
+  void showNotificationOverlay(
+      BuildContext context, Function(InAppNotification) onTap) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final position = button.localToGlobal(Offset.zero);
 
@@ -72,7 +74,7 @@ class NotificationButton extends StatelessWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const NotificationOverlay(),
+                    child: NotificationOverlay(onTap: onTap),
                   ),
                 ),
               ),
@@ -86,7 +88,8 @@ class NotificationButton extends StatelessWidget {
 }
 
 class NotificationOverlay extends StatelessWidget {
-  const NotificationOverlay({Key? key}) : super(key: key);
+  final Function(InAppNotification) onTap;
+  const NotificationOverlay({Key? key, required this.onTap}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -98,7 +101,8 @@ class NotificationOverlay extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(8)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,12 +134,13 @@ class NotificationOverlay extends StatelessWidget {
               child: appProvider.notifications.isEmpty
                   ? const Center(child: Text('لا توجد إشعارات'))
                   : ListView.builder(
-                itemCount: appProvider.notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = appProvider.notifications[index];
-                  return NotificationItem(notification: notification);
-                },
-              ),
+                      itemCount: appProvider.notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = appProvider.notifications[index];
+                        return NotificationItem(
+                            notification: notification, onTap: onTap);
+                      },
+                    ),
             ),
           ],
         );
@@ -146,10 +151,12 @@ class NotificationOverlay extends StatelessWidget {
 
 class NotificationItem extends StatelessWidget {
   final InAppNotification notification;
+  final Function(InAppNotification) onTap;
 
   const NotificationItem({
     Key? key,
     required this.notification,
+    required this.onTap,
   }) : super(key: key);
 
   @override
@@ -157,7 +164,9 @@ class NotificationItem extends StatelessWidget {
     final appProvider = Provider.of<AppProvider>(context, listen: false);
 
     return Container(
-      color: notification.isRead ? Colors.white : Color(0xFF4F46E5).withOpacity(0.1),
+      color: notification.isRead
+          ? Colors.white
+          : Color(0xFF4F46E5).withOpacity(0.1),
       child: ListTile(
         title: Text(notification.title),
         subtitle: Column(
@@ -193,6 +202,7 @@ class NotificationItem extends StatelessWidget {
           if (!notification.isRead) {
             appProvider.markAsRead(notification.id);
           }
+          onTap(notification);
           // Handle notification tap - maybe navigate to related content
         },
       ),
