@@ -1,8 +1,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'dart:typed_data';
 
 import '../../shared/appProvider.dart';
+import '../../models/City.dart';
 import 'widget/AddCityDialog.dart';
 
 class AreaManagement extends StatefulWidget {
@@ -29,6 +33,92 @@ class _AreaManagementState extends State<AreaManagement> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _importFromExcel() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls', 'csv'],
+      );
+
+      if (result != null) {
+        Uint8List? bytes;
+        if (result.files.single.bytes != null) {
+          bytes = result.files.single.bytes;
+        } else {
+          // Handle platform-specific file reading if necessary
+          // For now assuming bytes are available (web/desktop)
+        }
+
+        if (bytes == null) return;
+
+        var excel = excel_pkg.Excel.decodeBytes(bytes);
+        Map<String, Set<String>> importedCities = {};
+
+        for (var table in excel.tables.keys) {
+          var sheet = excel.tables[table];
+          if (sheet == null) continue;
+
+          // Skip header row
+          for (int i = 1; i < sheet.maxRows; i++) {
+            var row = sheet.rows[i];
+            if (row.length < 2) continue;
+
+            // Mapping based on user request: City (0), District (1 - skip), Area (2)
+            // If the row has 3 or more columns, we take 0 and 2.
+            // If it has only 2, we take 0 and 1.
+            String cityName = row[0]?.value?.toString().trim() ?? '';
+            String placeName = '';
+
+            if (row.length >= 3) {
+              placeName = row[2]?.value?.toString().trim() ?? '';
+            } else if (row.length >= 2) {
+              placeName = row[1]?.value?.toString().trim() ?? '';
+            }
+
+            if (cityName.isNotEmpty && placeName.isNotEmpty) {
+              if (!importedCities.containsKey(cityName)) {
+                importedCities[cityName] = {};
+              }
+              importedCities[cityName]!.add(placeName);
+            }
+          }
+        }
+
+        if (importedCities.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لم يتم العثور على بيانات صالحة في الملف')),
+          );
+          return;
+        }
+
+        final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+        // Merge with existing data
+        for (var entry in importedCities.entries) {
+          String cityName = entry.key;
+          List<String> newPlaces = entry.value.toList();
+
+          // Check if city already exists
+          var existingCity = appProvider.citiesAndPlaces.firstWhere(
+            (c) => c.name == cityName,
+            orElse: () => City(name: cityName, places: []),
+          );
+
+          Set<String> allPlaces = {...existingCity.places, ...newPlaces};
+          appProvider.addCity(City(name: cityName, places: allPlaces.toList()));
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم استيراد ${importedCities.length} مدينة بنجاح')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ أثناء الاستيراد: $e')),
+      );
+    }
   }
 
   @override
@@ -98,31 +188,53 @@ class _AreaManagementState extends State<AreaManagement> {
                             ),
                           ],
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AddCityDialog(
-                                onSave: (city) {
-                                  appProvider.addCity(city);
-                                },
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: _importFromExcel,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xffaf5405),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              icon: const Icon(Icons.file_upload),
+                              label: const Text(
+                                'استيراد من Excel',
+                                style: TextStyle(fontSize: 16),
+                              ),
                             ),
-                          ),
-                          icon: const Icon(Icons.add),
-                          label: const Text(
-                            'إضافة مدينة جديدة',
-                            style: TextStyle(fontSize: 16),
-                          ),
+                            const SizedBox(width: 12),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AddCityDialog(
+                                    onSave: (city) {
+                                      appProvider.addCity(city);
+                                    },
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xffaf5405),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(Icons.add),
+                              label: const Text(
+                                'إضافة مدينة جديدة',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

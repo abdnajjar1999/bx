@@ -51,13 +51,8 @@ class _CustomerCollectionDialogState extends State<CustomerCollectionDialog> {
       selectedOrderIds.clear();
     });
 
-    // We fetch today's orders for this customer
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-
     FirebaseFirestore.instance
         .collection('orders')
-        .where('timestamp', isGreaterThanOrEqualTo: startOfDay)
         .where('userId', isEqualTo: userId)
         .where('status', isEqualTo: 'الطلبات الجديدة')
         .get()

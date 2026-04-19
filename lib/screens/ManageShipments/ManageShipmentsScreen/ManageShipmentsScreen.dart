@@ -1885,7 +1885,7 @@ class _ManageShipmentsScreenState extends State<ManageShipmentsScreen> {
                                           isLoading: false,
                                         ),
                                         CustomButton(
-                                          text: 'جلب من زبائن',
+                                          text: 'جولات الجلب',
                                           onPressed: () {
                                             showCustomerCollectionDialog(
                                                 context);
