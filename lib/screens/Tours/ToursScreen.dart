@@ -17,6 +17,10 @@ class ToursScreen extends StatefulWidget {
 class _ToursScreenState extends State<ToursScreen> {
   final _formKey = GlobalKey<FormState>();
   final _tourNameController = TextEditingController();
+  final _areaSearchController = TextEditingController();
+  final _globalTourSearchController = TextEditingController();
+  String _areaSearchQuery = '';
+  String _globalTourSearchQuery = '';
   List<String> selectedAreas = []; // Format: "CityName - AreaName"
   Driver? selectedDriver;
   DocumentSnapshot? selectedTour;
@@ -24,6 +28,8 @@ class _ToursScreenState extends State<ToursScreen> {
   @override
   void dispose() {
     _tourNameController.dispose();
+    _areaSearchController.dispose();
+    _globalTourSearchController.dispose();
     super.dispose();
   }
 
@@ -288,11 +294,40 @@ class _ToursScreenState extends State<ToursScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('ملخص الجولات اليوم',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('ملخص الجولات اليوم',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold)),
+                            // Global Search Field
+                            Container(
+                              width: 300,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: TextField(
+                                controller: _globalTourSearchController,
+                                style: const TextStyle(fontSize: 14),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _globalTourSearchQuery = value;
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                  hintText: 'بحث عن منطقة أو اسم جولة...',
+                                  border: InputBorder.none,
+                                  icon: Icon(Icons.search, size: 20),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 16),
                         Expanded(
                           child: StreamBuilder<QuerySnapshot>(
@@ -304,10 +339,27 @@ class _ToursScreenState extends State<ToursScreen> {
                                 return const Center(
                                     child: CircularProgressIndicator());
 
-                              final docs = snapshot.data!.docs;
+                              var docs = snapshot.data!.docs;
+
+                              if (_globalTourSearchQuery.isNotEmpty) {
+                                docs = docs.where((doc) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final name = (data['name'] ?? '').toString().toLowerCase();
+                                  final areas = List<String>.from(data['areas'] ?? [])
+                                      .map((e) => e.toLowerCase())
+                                      .toList();
+                                  final query = _globalTourSearchQuery.toLowerCase();
+
+                                  bool nameMatch = name.contains(query);
+                                  bool areaMatch = areas.any((area) => area.contains(query));
+                                  
+                                  return nameMatch || areaMatch;
+                                }).toList();
+                              }
+
                               if (docs.isEmpty) {
                                 return const Center(
-                                    child: Text('لا يوجد جولات مضافة حالياً'));
+                                    child: Text('لا يوجد جولات مطابقة للبحث'));
                               }
 
                               return GridView.builder(
@@ -470,7 +522,50 @@ class _ToursScreenState extends State<ToursScreen> {
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 12),
-                          ...citiesAndPlaces.map((city) {
+                          // Area Search Bar
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: TextField(
+                              controller: _areaSearchController,
+                              style: const TextStyle(fontSize: 14),
+                              onChanged: (value) {
+                                setState(() {
+                                  _areaSearchQuery = value;
+                                });
+                              },
+                              decoration: const InputDecoration(
+                                hintText: 'بحث عن منطقة...',
+                                border: InputBorder.none,
+                                icon: Icon(Icons.search, size: 20),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ...citiesAndPlaces.where((city) {
+                            if (_areaSearchQuery.isEmpty) return true;
+                            bool cityMatches = city.name
+                                .toLowerCase()
+                                .contains(_areaSearchQuery.toLowerCase());
+                            bool anyPlaceMatches = city.places.any((p) => p
+                                .toLowerCase()
+                                .contains(_areaSearchQuery.toLowerCase()));
+                            return cityMatches || anyPlaceMatches;
+                          }).map((city) {
+                            final filteredPlaces = city.places.where((p) {
+                              if (_areaSearchQuery.isEmpty) return true;
+                              return p
+                                      .toLowerCase()
+                                      .contains(_areaSearchQuery.toLowerCase()) ||
+                                  city.name
+                                      .toLowerCase()
+                                      .contains(_areaSearchQuery.toLowerCase());
+                            }).toList();
+
                             final cityAreas = city.places
                                 .map((p) => '${city.name} $p')
                                 .toList();
@@ -489,10 +584,11 @@ class _ToursScreenState extends State<ToursScreen> {
                                 side: BorderSide(color: Colors.grey.shade200),
                               ),
                               child: ExpansionTile(
+                                initiallyExpanded: _areaSearchQuery.isNotEmpty,
                                 title: Text(city.name,
                                     style: const TextStyle(fontSize: 14)),
                                 subtitle: Text(
-                                    '${selectedCityAreas.length} منطقة',
+                                    '${selectedCityAreas.length} منطقة (${filteredPlaces.length} ظاهر)',
                                     style: const TextStyle(fontSize: 11)),
                                 leading: Checkbox(
                                   value: isAllSelected,
@@ -517,7 +613,7 @@ class _ToursScreenState extends State<ToursScreen> {
                                     child: Wrap(
                                       spacing: 6,
                                       runSpacing: 6,
-                                      children: city.places.map((place) {
+                                      children: filteredPlaces.map((place) {
                                         final areaKey = '${city.name} $place';
                                         final isSelected =
                                             selectedAreas.contains(areaKey);
