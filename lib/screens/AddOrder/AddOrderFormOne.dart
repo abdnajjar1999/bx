@@ -170,15 +170,33 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
       // Set dropdown values
       setState(() {
-        if (shipment.city.contains(' ')) {
-          int spaceIndex = shipment.city.lastIndexOf(' ');
-          selectedCity = shipment.city.substring(0, spaceIndex);
-          selectedRegion = shipment.city.substring(spaceIndex + 1);
-        } else {
-          selectedCity = shipment.city;
-          selectedRegion = null;
+        // تنظيف النص من أي مسافات زائدة (مزدوجة أو في الأطراف)
+        String fullCityName = shipment.city.replaceAll(RegExp(r'\s+'), ' ').trim();
+        bool splitFound = false;
+
+        // البحث عن اسم المدينة أولاً من القائمة المعروفة
+        for (var city in appProvider.cities) {
+          if (fullCityName.startsWith("$city ")) {
+            selectedCity = city; // تم العثور على المدينة
+            selectedRegion = fullCityName.substring(city.length + 1).trim(); // الباقي هو المنطقة
+            splitFound = true;
+            break;
+          }
         }
-        selectedCityPlace = shipment.city;
+
+        // إذا لم يجد تطابقاً مع مدينة معروفة، يتم التقسيم عند أول فراغ (كخيار احتياطي)
+        if (!splitFound) {
+          if (fullCityName.contains(' ')) {
+            int spaceIndex = fullCityName.indexOf(' ');
+            selectedCity = fullCityName.substring(0, spaceIndex);
+            selectedRegion = fullCityName.substring(spaceIndex + 1);
+          } else {
+            selectedCity = fullCityName;
+            selectedRegion = null;
+          }
+        }
+        
+        selectedCityPlace = fullCityName;
         if (paymentMethods.contains(shipment.paymentMethod)) {
           selectedPaymentMethod = shipment.paymentMethod;
         }
@@ -505,11 +523,16 @@ class AddOrderFormState extends State<AddOrderFormOne> {
 
   void _cheakForDriver(AppProvider appProvider) {
     if (selectedCity != null) {
-      // Use combined name or city for driver search
-      final cityForDriver = selectedCityPlace ?? selectedCity!;
+      // تنظيف النص بالكامل قبل البحث عن السائق
+      final cleanCityForDriver = (selectedCityPlace ?? selectedCity!)
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+          
       List<Driver> driversFromCity = appProvider.drivers
-          .where((driver) => driver.cities.contains(cityForDriver))
+          .where((driver) => driver.cities.any((c) => 
+              c.replaceAll(RegExp(r'\s+'), ' ').trim() == cleanCityForDriver))
           .toList();
+          
       if (driversFromCity.isNotEmpty) {
         setState(() {
           selectedPickupLocation = 'مع السائق';
@@ -1102,12 +1125,13 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                       .contains(textEditingValue.text.toLowerCase()));
                 },
                 onSelected: (String city) {
+                  final cleanCity = city.replaceAll(RegExp(r'\s+'), ' ').trim();
                   setState(() {
-                    selectedCity = city;
+                    selectedCity = cleanCity;
                     selectedRegion = null;
-                    selectedCityPlace = city;
+                    selectedCityPlace = cleanCity;
                   });
-                  state.didChange(city);
+                  state.didChange(cleanCity);
                   calculateDeliveryCost(appProvider);
                   _cheakForDriver(appProvider);
                   // Move focus to region field
@@ -1119,12 +1143,13 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                     controller: textController,
                     focusNode: focusNode,
                     onFieldSubmitted: (value) {
+                      final cleanValue = value.replaceAll(RegExp(r'\s+'), ' ').trim();
                       final filtered = appProvider.cities
                           .where((city) =>
-                              city.toLowerCase().contains(value.toLowerCase()))
+                              city.toLowerCase().contains(cleanValue.toLowerCase()))
                           .toList();
                       if (filtered.isNotEmpty) {
-                        final selection = filtered.first;
+                        final selection = filtered.first.replaceAll(RegExp(r'\s+'), ' ').trim();
                         setState(() {
                           selectedCity = selection;
                           selectedRegion = null;
@@ -1187,11 +1212,13 @@ class AddOrderFormState extends State<AddOrderFormOne> {
         key: ValueKey(selectedCity), // Rebuild when city changes
         initialValue: selectedRegion,
         validator: (_) {
-          final typed = selectedRegion?.trim() ?? '';
+          final typed = selectedRegion?.replaceAll(RegExp(r'\s+'), ' ').trim() ?? '';
           if (typed.isNotEmpty &&
-              regionOptions.isNotEmpty &&
-              !regionOptions.contains(typed)) {
-            return 'يرجى اختيار منطقة من القائمة';
+              regionOptions.isNotEmpty) {
+            final normalizedOptions = regionOptions.map((e) => e.replaceAll(RegExp(r'\s+'), ' ').trim()).toList();
+            if (!normalizedOptions.contains(typed)) {
+              return 'يرجى اختيار منطقة من القائمة';
+            }
           }
           return null;
         },
@@ -1217,12 +1244,13 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                           .contains(textEditingValue.text.toLowerCase()));
                     },
                     onSelected: (String region) {
+                      final cleanRegion = region.replaceAll(RegExp(r'\s+'), ' ').trim();
                       setState(() {
-                        selectedRegion = region;
+                        selectedRegion = cleanRegion;
                         selectedCityPlace =
-                            '${selectedCity ?? ''} $region'.trim();
+                            '${selectedCity ?? ''} $cleanRegion'.trim();
                       });
-                      state.didChange(region);
+                      state.didChange(cleanRegion);
                       _cheakForDriver(appProvider);
                       // Move focus to address description field
                       _addressDescFocusNode.requestFocus();
@@ -1240,13 +1268,14 @@ class AddOrderFormState extends State<AddOrderFormOne> {
                           controller: textController,
                           focusNode: focusNode,
                           onFieldSubmitted: (value) {
+                            final cleanValue = value.replaceAll(RegExp(r'\s+'), ' ').trim();
                             final filtered = regionOptions
                                 .where((region) => region
                                     .toLowerCase()
-                                    .contains(value.toLowerCase()))
+                                    .contains(cleanValue.toLowerCase()))
                                 .toList();
                             if (filtered.isNotEmpty) {
-                              final selection = filtered.first;
+                              final selection = filtered.first.replaceAll(RegExp(r'\s+'), ' ').trim();
                               setState(() {
                                 selectedRegion = selection;
                                 selectedCityPlace =

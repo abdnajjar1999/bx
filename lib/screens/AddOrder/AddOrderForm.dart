@@ -251,16 +251,32 @@ class AddOrderFormState extends State<AddOrderForm> {
       contentController.text = shipment.contents;
       weightController.text = shipment.weight.toString();
       notesController.text = shipment.notes;
-      // Split city for edit mode
-      if (shipment.city.contains(' ')) {
-        int spaceIndex = shipment.city.lastIndexOf(' ');
-        selectedCity = shipment.city.substring(0, spaceIndex);
-        selectedRegion = shipment.city.substring(spaceIndex + 1);
-        citySearchController.text = selectedCity!;
-      } else {
-        selectedCity = shipment.city;
-        selectedRegion = null;
-        citySearchController.text = selectedCity ?? '';
+      // تنظيف النص من أي مسافات زائدة لضمان التقسيم الصحيح
+      String fullCityName = shipment.city.replaceAll(RegExp(r'\s+'), ' ').trim();
+      bool splitFound = false;
+      
+      // Try to match against known cities first
+      for (var city in appProvider.cities) {
+        if (fullCityName.startsWith("$city ")) {
+          selectedCity = city;
+          selectedRegion = fullCityName.substring(city.length + 1).trim();
+          citySearchController.text = selectedCity!;
+          splitFound = true;
+          break;
+        }
+      }
+      
+      if (!splitFound) {
+        if (fullCityName.contains(' ')) {
+          int spaceIndex = fullCityName.indexOf(' '); // Split at first space instead of last
+          selectedCity = fullCityName.substring(0, spaceIndex);
+          selectedRegion = fullCityName.substring(spaceIndex + 1);
+          citySearchController.text = selectedCity!;
+        } else {
+          selectedCity = fullCityName;
+          selectedRegion = null;
+          citySearchController.text = selectedCity ?? '';
+        }
       }
       
       if (shipment.selectedItems != null) {
@@ -270,8 +286,10 @@ class AddOrderFormState extends State<AddOrderForm> {
 
       // Set dropdown values
       setState(() {
-        selectedCity = shipment.city;
+        // Fix: Removed selectedCity = shipment.city; which was overwriting the split result
         if (appProvider.citiesAndPlacesNames.contains(shipment.city)) {
+          selectedCityPlace = shipment.city;
+        } else {
           selectedCityPlace = shipment.city;
         }
         if (paymentMethods.contains(shipment.paymentMethod)) {
@@ -798,6 +816,7 @@ class AddOrderFormState extends State<AddOrderForm> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     FocusNode? nextFocus,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -810,6 +829,7 @@ class AddOrderFormState extends State<AddOrderForm> {
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
+          validator: validator,
           style: const TextStyle(fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
@@ -1109,6 +1129,16 @@ class AddOrderFormState extends State<AddOrderForm> {
           icon: Icons.phone_android_outlined,
           keyboardType: TextInputType.phone,
           nextFocus: shipment.citySearchFocus,
+          validator: (value) {
+            if (value == null ||
+                value.isEmpty ||
+                !value.startsWith('07') ||
+                value.length != 10 ||
+                !value.contains(RegExp(r'^[0-9]+$'))) {
+              return 'رقم الجوال يجب أن يبدأ بالرقم 07 ويتكون من 10 أرقام فقط';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         _buildCitySearchField(
@@ -1218,6 +1248,16 @@ class AddOrderFormState extends State<AddOrderForm> {
                 icon: Icons.phone_android_outlined,
                 keyboardType: TextInputType.phone,
                 nextFocus: shipment.citySearchFocus,
+                validator: (value) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      !value.startsWith('07') ||
+                      value.length != 10 ||
+                      !value.contains(RegExp(r'^[0-9]+$'))) {
+                    return 'رقم الجوال يجب أن يبدأ بالرقم 07 ويتكون من 10 أرقام فقط';
+                  }
+                  return null;
+                },
               ),
             ),
             const SizedBox(width: 16),

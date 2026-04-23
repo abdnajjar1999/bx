@@ -10,7 +10,6 @@ import '../models/Shipment.dart';
 import '../models/UserAccount.dart';
 import '../models/Expense.dart';
 import 'package:intl/intl.dart';
-import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 
 class ExcelImportHandler {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -159,12 +158,30 @@ class ExcelImportHandler {
                 .toString()
                 .replaceRange(0, 3, i.toString());
 
-            String address = _getValueByField(row, colMap, 'address') ?? "";
-
-            var res = extractOne<String>(
-                query: address,
-                choices: appProvider?.citiesAndPlacesNames ?? []);
-            String city = res.choice;
+            // تنظيف العنوان من المسافات الزائدة والمزدوجة لضمان مطابقة دقيقة
+            String address = (_getValueByField(row, colMap, 'address') ?? "")
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
+            String city = "";
+            
+            // خوارزمية المطابقة المباشرة المعتمدة على البحث عن الاسم الأطول والأكثر دقة
+            if (address.isNotEmpty && appProvider?.citiesAndPlacesNames != null) {
+              List<String> choices = List.from(appProvider!.citiesAndPlacesNames);
+              // ترتيب الخيارات من الأطول إلى الأقصر لضمان التقاط المنطقة التفصيلية أولاً
+              choices.sort((a, b) => b.length.compareTo(a.length));
+              
+              for (var choice in choices) {
+                if (address.contains(choice)) {
+                  city = choice;
+                  break; // توقف عند أول تطابق لأنه الأطول والأكثر دقة
+                }
+              }
+            }
+            
+            // محاولة أخيرة من عمود المدينة إذا لم تجد الخوارزمية شيئاً في العنوان
+            if (city.isEmpty) {
+              city = _getValueByField(row, colMap, 'city') ?? "غير محدد";
+            }
 
             double deliveryCost = appProvider!
                 .calculateDeliveryCostForCity(city, selectedUserId ?? "");
@@ -256,7 +273,6 @@ class ExcelImportHandler {
     Map<String, int> map = {};
 
     _fieldSynonyms.forEach((field, synonyms) {
-      int bestScore = 0;
       int bestIndex = -1;
 
       for (int i = 0; i < headerRow.length; i++) {
@@ -264,22 +280,19 @@ class ExcelImportHandler {
         if (header == null || header.isEmpty) continue;
 
         for (var synonym in synonyms) {
-          int rScore = ratio(synonym.toLowerCase(), header);
-          // Only use partial ratio if it's not a tiny word to avoid broad matches
-          int pScore = synonym.length > 3
-              ? partialRatio(synonym.toLowerCase(), header)
-              : 0;
-          int score = rScore > pScore ? rScore : pScore;
-
-          if (score > bestScore) {
-            bestScore = score;
+          String normalizedSynonym = synonym.toLowerCase();
+          // المطابقة المباشرة أو الاحتواء الكامل
+          if (header == normalizedSynonym || 
+              header.contains(normalizedSynonym) || 
+              normalizedSynonym.contains(header)) {
             bestIndex = i;
+            break;
           }
         }
+        if (bestIndex != -1) break;
       }
 
-      // If match score is high enough
-      if (bestScore >= 80) {
+      if (bestIndex != -1) {
         map[field] = bestIndex;
       }
     });
